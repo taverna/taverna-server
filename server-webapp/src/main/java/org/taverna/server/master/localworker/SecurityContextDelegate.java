@@ -53,7 +53,7 @@ import org.taverna.server.master.utils.FilenameUtils;
  * 
  * @author Donal Fellows
  */
-class SecurityContextDelegate implements TavernaSecurityContext {
+public class SecurityContextDelegate implements TavernaSecurityContext {
 	private final Principal owner;
 	private final List<Credential> credentials = new ArrayList<Credential>();
 	private final List<Trust> trusted = new ArrayList<Trust>();
@@ -61,7 +61,7 @@ class SecurityContextDelegate implements TavernaSecurityContext {
 	private final Object lock = new Object();
 	private final Factory factory;
 
-	SecurityContextDelegate(RemoteRunDelegate run, Principal owner,
+	protected SecurityContextDelegate(RemoteRunDelegate run, Principal owner,
 			Factory factory) {
 		this.run = run;
 		this.owner = owner;
