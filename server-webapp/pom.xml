@@ -30,6 +30,19 @@
 			<url>http://java-twitter.googlecode.com/svn/repository/</url>
 			<name>java-twitter maven repository</name>
 		</repository>
+		<repository>
+			<id>helio-dependencies</id>
+			<name>HELIO Repository</name>
+			<url>http://helio-dev.i4ds.ch:8123/archiva/repository/internal/</url>
+			<snapshots>
+				<enabled>false</enabled>
+			</snapshots>
+		</repository>
+		<repository>
+			<id>helio-main</id>
+			<name>HELIO Main Packages</name>
+			<url>http://helio-dev.i4ds.ch:8123/archiva/repository/internal/</url>
+		</repository>
 	</repositories>
 	<pluginRepositories>
 		<pluginRepository>
@@ -48,6 +61,37 @@
 	</properties>
 
 	<dependencies>
+        <dependency>
+                <groupId>eu.heliovo.securitylibraries</groupId>
+                <artifactId>cog-jglobus</artifactId>
+                <version>1.8.0</version>
+                <type>jar</type>
+        </dependency>
+        <dependency>
+                <groupId>eu.heliovo.securitylibraries</groupId>
+                <artifactId>cryptix-asn1</artifactId>
+                <version>1</version>
+                <type>jar</type>
+        </dependency>
+        <dependency>
+                <groupId>eu.heliovo.securitylibraries</groupId>
+                <artifactId>cryptix32</artifactId>
+                <version>1</version>
+                <type>jar</type>
+        </dependency>
+        <dependency>
+                <groupId>eu.heliovo.securitylibraries</groupId>
+                <artifactId>jce-jdk13</artifactId>
+                <version>131</version>
+                <type>jar</type>
+        </dependency>
+        <dependency>
+                <groupId>eu.heliovo.securitylibraries</groupId>
+                <artifactId>puretls</artifactId>
+                <version>1</version>
+                <type>jar</type>
+        </dependency>    
+
 		<dependency>
 			<groupId>org.apache.cxf</groupId>
 			<artifactId>cxf-rt-frontend-jaxws</artifactId>
