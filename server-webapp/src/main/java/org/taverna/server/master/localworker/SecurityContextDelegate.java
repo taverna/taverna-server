@@ -34,6 +34,7 @@ import java.util.Set;
 
 import javax.crypto.spec.SecretKeySpec;
 import javax.security.auth.x500.X500Principal;
+import javax.servlet.ServletContext;
 import javax.ws.rs.core.HttpHeaders;
 import javax.xml.ws.handler.MessageContext;
 
@@ -98,7 +99,7 @@ public class SecurityContextDelegate implements TavernaSecurityContext {
 
 		@Override
 		public SecurityContextDelegate create(RemoteRunDelegate run,
-				Principal owner) {
+				Principal owner) throws Exception {
 			return new SecurityContextDelegate(run, owner, this);
 		}
 
@@ -254,6 +255,11 @@ public class SecurityContextDelegate implements TavernaSecurityContext {
 		} catch (CertificateException e) {
 			throw new InvalidCredentialException(e);
 		}
+	}
+
+	@Override
+	public void initializeSecurityFromContext(ServletContext servletContext) throws Exception {
+		// do nothing in this implementation
 	}
 
 	@Override
