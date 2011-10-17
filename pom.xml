@@ -18,9 +18,9 @@
 
 	<!-- Having to edit anything below here is probably indicative of a bug. -->
 	<parent>
-		<artifactId>parent</artifactId>
 		<groupId>net.sf.taverna</groupId>
-		<version>0.1.2009-02-12</version>
+		<artifactId>parent</artifactId>
+		<version>0.2.2011-02-17</version>
 	</parent>
 	<prerequisites>
 		<maven>2.2</maven>
