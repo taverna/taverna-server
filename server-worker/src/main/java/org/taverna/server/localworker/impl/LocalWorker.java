@@ -13,7 +13,6 @@ import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 import static java.util.UUID.randomUUID;
-import static org.apache.commons.io.FileCleaner.track;
 import static org.apache.commons.io.FileUtils.forceDelete;
 import static org.apache.commons.io.FileUtils.forceMkdir;
 import static org.apache.commons.io.FileUtils.writeByteArrayToFile;
@@ -37,6 +36,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import org.apache.commons.io.FileCleaningTracker;
 import org.taverna.server.localworker.remote.IllegalStateTransitionException;
 import org.taverna.server.localworker.remote.ImplementationException;
 import org.taverna.server.localworker.remote.RemoteDirectory;
@@ -245,6 +245,7 @@ public class LocalWorker extends UnicastRemoteObject implements RemoteSingleRun 
 
 	File contextDirectory;
 	char[] keystorePassword = new char[0];
+	FileCleaningTracker fileTracker = new FileCleaningTracker();
 
 	@SuppressWarnings("SE_INNER_CLASS")
 	class SecurityDelegate extends UnicastRemoteObject implements
@@ -262,7 +263,7 @@ public class LocalWorker extends UnicastRemoteObject implements RemoteSingleRun 
 							.println("warning: "
 									+ "failed to set permissions on security context directory");
 				}
-				track(contextDirectory, LocalWorker.this);
+				fileTracker.track(contextDirectory, LocalWorker.this);
 			}
 		}
 
