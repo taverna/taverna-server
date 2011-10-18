@@ -516,11 +516,48 @@
 					</execution>
 				</executions>
 			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-eclipse-plugin</artifactId>
+				<configuration>
+					<additionalProjectnatures>
+						<projectnature>org.springframework.ide.eclipse.core.springnature</projectnature>
+					</additionalProjectnatures>
+					<additionalConfig>
+						<file>
+							<name>.springBeans</name>
+							<content><![CDATA[<?xml version="1.0" encoding="UTF-8"?>
+<beansProjectDescription>
+	<version>1</version>
+	<pluginVersion>2.7.2.201109122348-RELEASE></pluginVersion>
+	<configSuffixes>
+		<configSuffix>xml</configSuffix>
+	</configSuffixes>
+	<enableImports>true</enableImports>
+	<configs>
+		<config>src/main/webapp/WEB-INF/windows.xml</config>
+		<config>src/main/webapp/WEB-INF/beans.xml</config>
+		<config>src/main/webapp/WEB-INF/insecure.xml</config>
+		<config>src/main/webapp/WEB-INF/providers.xml</config>
+		<config>src/main/webapp/WEB-INF/secure.xml</config>
+		<config>src/main/webapp/WEB-INF/webappBeans.xml</config>
+	</configs>
+	<configSets>
+	</configSets>
+</beansProjectDescription>]]></content>
+						</file>
+					</additionalConfig>
+				</configuration>
+			</plugin>
 		</plugins>
 		<resources>
 			<resource>
 				<directory>src/main/resources</directory>
 				<filtering>true</filtering>
+			</resource>
+			<resource>
+				<directory>src/main/webapp</directory>
+				<filtering>false</filtering>
 			</resource>
 		</resources>
 	</build>
