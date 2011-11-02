@@ -549,6 +549,45 @@
 		<config>src/main/webapp/WEB-INF/webappBeans.xml</config>
 	</configs>
 	<configSets>
+		<configSet>
+			<name>Secure Configuration</name>
+			<allowBeanDefinitionOverriding>true</allowBeanDefinitionOverriding>
+			<incomplete>false</incomplete>
+			<configs>
+				<config>src/main/webapp/WEB-INF/beans.xml</config>
+				<config>src/main/webapp/WEB-INF/providers.xml</config>
+				<config>src/main/webapp/WEB-INF/secure.xml</config>
+				<config>src/main/webapp/WEB-INF/webappBeans.xml</config>
+			</configs>
+			<profiles>
+			</profiles>
+		</configSet>
+		<configSet>
+			<name>Insecure Configuration</name>
+			<allowBeanDefinitionOverriding>true</allowBeanDefinitionOverriding>
+			<incomplete>false</incomplete>
+			<configs>
+				<config>src/main/webapp/WEB-INF/beans.xml</config>
+				<config>src/main/webapp/WEB-INF/insecure.xml</config>
+				<config>src/main/webapp/WEB-INF/providers.xml</config>
+				<config>src/main/webapp/WEB-INF/webappBeans.xml</config>
+			</configs>
+			<profiles>
+			</profiles>
+		</configSet>
+		<configSet>
+			<name>Semi-Secure (Windows) Configuration</name>
+			<allowBeanDefinitionOverriding>true</allowBeanDefinitionOverriding>
+			<incomplete>false</incomplete>
+			<configs>
+				<config>src/main/webapp/WEB-INF/beans.xml</config>
+				<config>src/main/webapp/WEB-INF/providers.xml</config>
+				<config>src/main/webapp/WEB-INF/webappBeans.xml</config>
+				<config>src/main/webapp/WEB-INF/windows.xml</config>
+			</configs>
+			<profiles>
+			</profiles>
+		</configSet>
 	</configSets>
 </beansProjectDescription>]]></content>
 						</file>
