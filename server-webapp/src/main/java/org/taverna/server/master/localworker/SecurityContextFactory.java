@@ -6,6 +6,7 @@
 package org.taverna.server.master.localworker;
 
 import static java.security.Security.addProvider;
+import static java.security.Security.removeProvider;
 import static org.apache.commons.logging.LogFactory.getLog;
 
 import java.io.Serializable;
@@ -13,6 +14,7 @@ import java.io.Serializable;
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 
+import org.apache.commons.logging.Log;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.springframework.beans.factory.annotation.Required;
 import org.taverna.server.master.utils.FilenameUtils;
@@ -37,6 +39,11 @@ public class SecurityContextFactory implements
 	transient RunDBSupport db;
 	transient FilenameUtils fileUtils;
 	transient X500Utils x500Utils;
+	private BouncyCastleProvider provider;
+
+	private Log log() {
+		return getLog("Taverna.Server.LocalWorker");
+	}
 
 	@SuppressWarnings({ "ST_WRITE_TO_STATIC_FROM_INSTANCE_METHOD",
 			"UPM_UNCALLED_PRIVATE_METHOD" })
@@ -44,6 +51,14 @@ public class SecurityContextFactory implements
 	@PreDestroy
 	private void closeLog() {
 		instance = null;
+		try {
+			if (provider != null)
+				removeProvider(provider.getName());
+		} catch (SecurityException e) {
+			log().warn(
+					"failed to remove BouncyCastle security provider; "
+							+ "might be OK if configured in environment", e);
+		}
 	}
 
 	@SuppressWarnings({ "ST_WRITE_TO_STATIC_FROM_INSTANCE_METHOD",
@@ -53,11 +68,14 @@ public class SecurityContextFactory implements
 	private void setAsSingleton() {
 		instance = this;
 		try {
-			addProvider(new BouncyCastleProvider());
+			provider = new BouncyCastleProvider();
+			if (addProvider(provider) == -1)
+				provider = null;
 		} catch (SecurityException e) {
-			getLog("Taverna.Server.LocalWorker").warn(
+			log().warn(
 					"failed to install BouncyCastle security provider; "
 							+ "might be OK if already configured", e);
+			provider = null;
 		}
 	}
 
@@ -79,6 +97,7 @@ public class SecurityContextFactory implements
 	@Override
 	public SecurityContextDelegate create(RemoteRunDelegate run,
 			UsernamePrincipal owner) throws Exception {
+		log().debug("constructing security context delegate for " + owner);
 		return new SecurityContextDelegateImpl(run, owner, this);
 	}
 

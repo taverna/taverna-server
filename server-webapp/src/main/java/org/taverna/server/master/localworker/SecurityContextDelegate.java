@@ -6,6 +6,7 @@
 package org.taverna.server.master.localworker;
 
 import static java.util.UUID.randomUUID;
+import static org.bouncycastle.jce.provider.BouncyCastleProvider.PROVIDER_NAME;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -16,7 +17,6 @@ import java.rmi.RemoteException;
 import java.security.GeneralSecurityException;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
-import java.security.KeyStoreSpi;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
@@ -31,7 +31,6 @@ import javax.xml.ws.handler.MessageContext;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.bouncycastle.jce.provider.JDKKeyStore.BouncyCastleStore;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
 import org.taverna.server.localworker.remote.ImplementationException;
@@ -59,7 +58,7 @@ public abstract class SecurityContextDelegate implements TavernaSecurityContext 
 	private final Object lock = new Object();
 	private final SecurityContextFactory factory;
 
-	private transient KeyStoreSpi keystore;
+	private transient KeyStore keystore;
 	private transient char[] password;
 	private transient HashMap<URI, String> uriToAliasMap;
 
@@ -205,8 +204,8 @@ public abstract class SecurityContextDelegate implements TavernaSecurityContext 
 	 *         annoying features of the API.
 	 * @throws GeneralSecurityException
 	 */
-	protected KeyStoreSpi getInitialKeyStore() throws GeneralSecurityException {
-		return new BouncyCastleStore();
+	protected KeyStore getInitialKeyStore() throws GeneralSecurityException {
+		return KeyStore.getInstance(PROVIDER_NAME);
 	}
 
 	/**
@@ -246,7 +245,7 @@ public abstract class SecurityContextDelegate implements TavernaSecurityContext 
 
 			log.info("constructing merged keystore");
 			KeyStore truststore = getInitialTrustStore();
-			KeyStoreSpi keystore = getInitialKeyStore();
+			KeyStore keystore = getInitialKeyStore();
 			HashMap<URI, String> uriToAliasMap = new HashMap<URI, String>();
 			int trustedCount = 0, keyCount = 0;
 
@@ -325,14 +324,6 @@ public abstract class SecurityContextDelegate implements TavernaSecurityContext 
 		return stream.toByteArray();
 	}
 
-	private static byte[] serialize(KeyStoreSpi ks, char[] password)
-			throws GeneralSecurityException, IOException {
-		ByteArrayOutputStream stream = new ByteArrayOutputStream();
-		ks.engineStore(stream, password);
-		stream.close();
-		return stream.toByteArray();
-	}
-
 	/**
 	 * @return A new password with a reasonable level of randomness.
 	 */
@@ -376,8 +367,7 @@ public abstract class SecurityContextDelegate implements TavernaSecurityContext 
 			throws KeyStoreException {
 		if (uriToAliasMap.containsKey(c.serviceURI))
 			log.warn("duplicate URI in alias mapping: " + c.serviceURI);
-		keystore.engineSetKeyEntry(alias, c.loadedKey, password,
-				c.loadedTrustChain);
+		keystore.setKeyEntry(alias, c.loadedKey, password, c.loadedTrustChain);
 		uriToAliasMap.put(c.serviceURI, alias);
 	}
 
