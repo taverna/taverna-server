@@ -6,7 +6,6 @@
 package org.taverna.server.master.localworker;
 
 import static java.util.UUID.randomUUID;
-import static org.bouncycastle.jce.provider.BouncyCastleProvider.PROVIDER_NAME;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -205,7 +204,7 @@ public abstract class SecurityContextDelegate implements TavernaSecurityContext 
 	 * @throws GeneralSecurityException
 	 */
 	protected KeyStore getInitialKeyStore() throws GeneralSecurityException {
-		return KeyStore.getInstance(PROVIDER_NAME);
+		return KeyStore.getInstance("UBER");
 	}
 
 	/**
