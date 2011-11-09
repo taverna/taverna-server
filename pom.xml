@@ -247,29 +247,6 @@
 					<tagBase>https://taverna.googlecode.com/svn/taverna/products/uk.org.taverna.server/tags</tagBase>
 				</configuration>
 			</plugin>
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-jarsigner-plugin</artifactId>
-				<executions>
-					<execution>
-						<goals>
-							<goal>sign</goal>
-						</goals>
-						<id>sign</id>
-						<phase>package</phase>
-						<configuration>
-							<keystore>${signing.keystore}</keystore>
-							<alias>${signing.user}</alias>
-							<storepass>${signing.password}</storepass>
-							<keypass>${signing.password}</keypass>
-							<excludeClassifiers>
-								<param>tests</param>
-								<param>test-sources</param>
-							</excludeClassifiers>
-						</configuration>
-					</execution>
-				</executions>
-			</plugin>
 		</plugins>
 	</build>
 	<dependencies>
@@ -480,6 +457,36 @@
 					</plugin>
 				</plugins>
 			</reporting>
+		</profile>
+		<profile>
+			<id>signed</id>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-jarsigner-plugin</artifactId>
+						<executions>
+							<execution>
+								<goals>
+									<goal>sign</goal>
+								</goals>
+								<id>sign</id>
+								<phase>package</phase>
+								<configuration>
+									<keystore>${signing.keystore}</keystore>
+									<alias>${signing.user}</alias>
+									<storepass>${signing.password}</storepass>
+									<keypass>${signing.password}</keypass>
+									<excludeClassifiers>
+										<param>tests</param>
+										<param>test-sources</param>
+									</excludeClassifiers>
+								</configuration>
+							</execution>
+						</executions>
+					</plugin>
+				</plugins>
+			</build>
 		</profile>
 	</profiles>
 

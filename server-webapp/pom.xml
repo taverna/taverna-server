@@ -19,7 +19,7 @@
 	</scm>
 
 	<properties>
-		<version.cxf>2.4.2</version.cxf>
+		<version.cxf>2.4.4</version.cxf>
 		<version.spring>3.0.6.RELEASE</version.spring>
 		<version.spring-security>3.0.7.RELEASE</version.spring-security>
 		<version.datanucleus>3.0.0-release</version.datanucleus>
