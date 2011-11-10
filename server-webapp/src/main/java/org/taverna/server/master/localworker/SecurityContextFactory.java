@@ -6,8 +6,10 @@
 package org.taverna.server.master.localworker;
 
 import static java.security.Security.addProvider;
+import static java.security.Security.getProvider;
 import static java.security.Security.removeProvider;
 import static org.apache.commons.logging.LogFactory.getLog;
+import static org.bouncycastle.jce.provider.BouncyCastleProvider.PROVIDER_NAME;
 
 import java.io.Serializable;
 
@@ -39,18 +41,22 @@ public class SecurityContextFactory implements
 	transient RunDBSupport db;
 	transient FilenameUtils fileUtils;
 	transient X500Utils x500Utils;
-	private BouncyCastleProvider provider;
+	private transient BouncyCastleProvider provider;
 
 	private Log log() {
 		return getLog("Taverna.Server.LocalWorker");
 	}
 
-	@SuppressWarnings({ "ST_WRITE_TO_STATIC_FROM_INSTANCE_METHOD",
-			"UPM_UNCALLED_PRIVATE_METHOD" })
+	@SuppressWarnings("ST_WRITE_TO_STATIC_FROM_INSTANCE_METHOD")
+	private void installAsInstance(SecurityContextFactory handle) {
+		instance = handle;
+	}
+
+	@SuppressWarnings("UPM_UNCALLED_PRIVATE_METHOD")
 	@java.lang.SuppressWarnings("unused")
 	@PreDestroy
 	private void closeLog() {
-		instance = null;
+		installAsInstance(null);
 		try {
 			if (provider != null)
 				removeProvider(provider.getName());
@@ -61,21 +67,22 @@ public class SecurityContextFactory implements
 		}
 	}
 
-	@SuppressWarnings({ "ST_WRITE_TO_STATIC_FROM_INSTANCE_METHOD",
-			"UPM_UNCALLED_PRIVATE_METHOD" })
+	@SuppressWarnings("UPM_UNCALLED_PRIVATE_METHOD")
 	@java.lang.SuppressWarnings("unused")
 	@PostConstruct
 	private void setAsSingleton() {
-		instance = this;
-		try {
-			provider = new BouncyCastleProvider();
-			if (addProvider(provider) == -1)
+		installAsInstance(this);
+		if (getProvider(PROVIDER_NAME) == null) {
+			try {
+				provider = new BouncyCastleProvider();
+				if (addProvider(provider) == -1)
+					provider = null;
+			} catch (SecurityException e) {
+				log().warn(
+						"failed to install BouncyCastle security provider; "
+								+ "might be OK if already configured", e);
 				provider = null;
-		} catch (SecurityException e) {
-			log().warn(
-					"failed to install BouncyCastle security provider; "
-							+ "might be OK if already configured", e);
-			provider = null;
+			}
 		}
 	}
 
@@ -102,6 +109,8 @@ public class SecurityContextFactory implements
 	}
 
 	private Object readResolve() {
-		return (instance != null) ? instance : (instance = this);
+		if (instance == null)
+			installAsInstance(this);
+		return instance;
 	}
 }
