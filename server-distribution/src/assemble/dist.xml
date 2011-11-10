@@ -23,6 +23,7 @@
 				<include>*.html</include>
 				<include>*.xml</include>
 				<include>*.txt</include>
+				<include>*.pdf</include>
 			</includes>
 			<excludes>
 				<exclude>pom.xml</exclude>
@@ -37,6 +38,7 @@
 				<include>*.html</include>
 				<include>*.xml</include>
 				<include>*.txt</include>
+				<include>*.pdf</include>
 			</includes>
 			<excludes>
 				<exclude>pom.xml</exclude>
