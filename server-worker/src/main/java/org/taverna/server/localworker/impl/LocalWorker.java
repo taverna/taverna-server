@@ -88,6 +88,12 @@ public class LocalWorker extends UnicastRemoteObject implements RemoteSingleRun 
 	private Thread shutdownHook;
 
 	/**
+	 * Subdirectories of the working directory to create by default.
+	 */
+	private static final String[] dirstomake = { "conf", "externaltool", "lib",
+			"logs", "plugins", "repository", "t2-database", "var" };
+
+	/**
 	 * @param executeWorkflowCommand
 	 *            The script used to execute workflows.
 	 * @param workflow
@@ -113,6 +119,9 @@ public class LocalWorker extends UnicastRemoteObject implements RemoteSingleRun 
 		out.println("about to create " + base);
 		try {
 			forceMkdir(base);
+			for (String subdir : dirstomake) {
+				new File(base, subdir).mkdir();
+			}
 		} catch (IOException e) {
 			throw new ImplementationException(
 					"problem creating run working directory", e);

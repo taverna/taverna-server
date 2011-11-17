@@ -284,6 +284,8 @@ public class WorkerCore extends UnicastRemoteObject implements Worker,
 				"PATH",
 				new File(System.getProperty("java.home"), "bin")
 						+ pathSeparator + pb.environment().get("PATH"));
+		// Patch the environment to deal with TAVSERV-189
+		pb.environment().put("RAVEN_APPHOME", workingDir.getCanonicalPath());
 
 		// Start the subprocess
 		out.println("starting " + pb.command() + " in directory " + workingDir);
