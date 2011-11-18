@@ -197,7 +197,7 @@ public class TavernaServerImplTest {
 
 	@Test
 	public void defaults4() {
-		assertNotNull(support.getPrincipal());
+		assertNotNull(support.getPrincipal(null));
 	}
 
 	@Test
@@ -228,7 +228,7 @@ public class TavernaServerImplTest {
 			String l = server.addRunListener(run.name, "foo", "foobar");
 			assertEquals("bar", l);
 			assertEquals("foobar", lrunconf);
-			assertEquals(lrunname, support.getRun(run.name).toString());
+			assertEquals(lrunname, support.getRun(run.name, null).toString());
 			assertEquals(asList("default", "bar"),
 					asList(server.getRunListeners(run.name)));
 			assertEquals(0,

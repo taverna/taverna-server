@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.Map;
 
 import javax.annotation.security.RolesAllowed;
+import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
@@ -435,6 +436,8 @@ public interface TavernaServerREST {
 	@RolesAllowed(USER)
 	public interface EventFeed {
 		/**
+		 * @param req
+		 *            The request that caused the webapp to be accessed.
 		 * @return the feed of events for the current user.
 		 */
 		@GET
@@ -443,11 +446,13 @@ public interface TavernaServerREST {
 				"application/atom+xml;type=feed" })
 		@Description("Get an Atom feed for the user's events.")
 		@NonNull
-		Events getFeed();
+		Events getFeed(@Context HttpServletRequest req);
 
 		/**
 		 * @param id
 		 *            The identifier for a particular event.
+		 * @param req
+		 *            The request that caused the webapp to be accessed.
 		 * @return the details about the given event.
 		 */
 		@GET
@@ -456,7 +461,8 @@ public interface TavernaServerREST {
 				"application/atom+xml;type=entry" })
 		@Description("Get a particular Atom event.")
 		@NonNull
-		AbstractEvent getEvent(@NonNull @PathParam("id") String id);
+		AbstractEvent getEvent(@NonNull @PathParam("id") String id,
+				@Context HttpServletRequest req);
 	}
 
 	/**

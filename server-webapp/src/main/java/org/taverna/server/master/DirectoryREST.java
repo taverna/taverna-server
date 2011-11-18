@@ -23,6 +23,8 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 
+import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.core.Context;
 import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.PathSegment;
@@ -55,6 +57,8 @@ import org.taverna.server.master.utils.InvocationCounter.CallCounted;
  * @author Donal Fellows
  */
 class DirectoryREST implements TavernaServerDirectoryREST, DirectoryBean {
+	@Context
+	HttpServletRequest req;
 	private TavernaServerSupport support;
 	private TavernaRun run;
 	private FilenameUtils fileUtils;
@@ -81,7 +85,7 @@ class DirectoryREST implements TavernaServerDirectoryREST, DirectoryBean {
 	public Response destroyDirectoryEntry(List<PathSegment> path)
 			throws NoUpdateException, FilesystemAccessException,
 			NoDirectoryEntryException {
-		support.permitUpdate(run);
+		support.permitUpdate(run, req);
 		fileUtils.getDirEntry(run, path).destroy();
 		return noContent().build();
 	}
@@ -193,7 +197,8 @@ class DirectoryREST implements TavernaServerDirectoryREST, DirectoryBean {
 			result = de;
 			List<String> range = headers.getRequestHeader("Range");
 			if (range != null && range.size() == 1) {
-				return new FileSegment((File) de, range.get(0)).toResponse(wanted);
+				return new FileSegment((File) de, range.get(0))
+						.toResponse(wanted);
 			}
 		} else {
 			// Only for directories...
@@ -214,7 +219,7 @@ class DirectoryREST implements TavernaServerDirectoryREST, DirectoryBean {
 	public Response makeDirectoryOrUpdateFile(List<PathSegment> parent,
 			MakeOrUpdateDirEntry op, UriInfo ui) throws NoUpdateException,
 			FilesystemAccessException, NoDirectoryEntryException {
-		support.permitUpdate(run);
+		support.permitUpdate(run, req);
 		DirectoryEntry container = fileUtils.getDirEntry(run, parent);
 		if (!(container instanceof Directory))
 			throw new FilesystemAccessException("You may not "
@@ -228,7 +233,7 @@ class DirectoryREST implements TavernaServerDirectoryREST, DirectoryBean {
 		// Make a directory in the context directory
 
 		if (op instanceof MakeDirectory) {
-			Directory target = d.makeSubdirectory(support.getPrincipal(),
+			Directory target = d.makeSubdirectory(support.getPrincipal(req),
 					op.name);
 			return created(ub.build(target.getName())).build();
 		}
@@ -246,7 +251,7 @@ class DirectoryREST implements TavernaServerDirectoryREST, DirectoryBean {
 			}
 		}
 		if (f == null) {
-			f = d.makeEmptyFile(support.getPrincipal(), op.name);
+			f = d.makeEmptyFile(support.getPrincipal(req), op.name);
 			f.setContents(op.contents);
 			return created(ub.build(f.getName())).build();
 		}
@@ -259,7 +264,7 @@ class DirectoryREST implements TavernaServerDirectoryREST, DirectoryBean {
 	public Response setFileContents(List<PathSegment> filePath, String name,
 			InputStream contents, UriInfo ui) throws NoDirectoryEntryException,
 			NoUpdateException, FilesystemAccessException {
-		support.permitUpdate(run);
+		support.permitUpdate(run, req);
 		Directory d;
 		if (filePath != null && filePath.size() > 0) {
 			DirectoryEntry e = fileUtils.getDirEntry(run, filePath);
@@ -284,7 +289,7 @@ class DirectoryREST implements TavernaServerDirectoryREST, DirectoryBean {
 			}
 		}
 		if (f == null)
-			f = d.makeEmptyFile(support.getPrincipal(), name);
+			f = d.makeEmptyFile(support.getPrincipal(req), name);
 
 		try {
 			byte[] buffer = new byte[65536];

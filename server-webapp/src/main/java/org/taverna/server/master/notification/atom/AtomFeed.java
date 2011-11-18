@@ -11,6 +11,8 @@ import java.net.URI;
 import java.util.List;
 
 import javax.servlet.ServletContext;
+import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.core.Context;
 import javax.ws.rs.core.UriBuilder;
 
 import org.springframework.web.context.ServletContextAware;
@@ -91,14 +93,14 @@ public class AtomFeed implements EventFeed, UriBuilderFactory,
 
 	@Override
 	@CallCounted
-	public Events getFeed() {
-		return new Feed(eventSource, support.getPrincipal());
+	public Events getFeed(@Context HttpServletRequest req) {
+		return new Feed(eventSource, support.getPrincipal(req));
 	}
 
 	@Override
 	@CallCounted
-	public AbstractEvent getEvent(String id) {
-		return eventSource.getEvent(support.getPrincipal(), id);
+	public AbstractEvent getEvent(String id, @Context HttpServletRequest req) {
+		return eventSource.getEvent(support.getPrincipal(req), id);
 	}
 
 	@Override

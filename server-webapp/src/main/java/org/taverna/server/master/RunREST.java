@@ -13,6 +13,8 @@ import static org.taverna.server.master.common.Status.Initialized;
 
 import java.util.Date;
 
+import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
 
@@ -42,6 +44,8 @@ import org.taverna.server.port_description.OutputDescription;
  * @author Donal Fellows
  */
 abstract class RunREST implements TavernaServerRunREST, RunBean {
+	@Context
+	HttpServletRequest req;
 	private String runName;
 	private TavernaRun run;
 	private TavernaServerSupport support;
@@ -78,7 +82,7 @@ abstract class RunREST implements TavernaServerRunREST, RunBean {
 	@CallCounted
 	public Response destroy() throws NoUpdateException {
 		try {
-			support.unregisterRun(runName, run);
+			support.unregisterRun(runName, run, req);
 		} catch (UnknownRunException e) {
 			log.fatal("can't happen", e);
 		}
@@ -95,7 +99,7 @@ abstract class RunREST implements TavernaServerRunREST, RunBean {
 	@CallCounted
 	public TavernaServerSecurityREST getSecurity() throws NotOwnerException {
 		TavernaSecurityContext secContext = run.getSecurityContext();
-		if (!support.getPrincipal().equals(secContext.getOwner()))
+		if (!support.getPrincipal(req).equals(secContext.getOwner()))
 			throw new NotOwnerException();
 
 		// context.getBean("run.security", run, secContext);
@@ -151,14 +155,14 @@ abstract class RunREST implements TavernaServerRunREST, RunBean {
 	public String setExpiryTime(String expiry) throws NoUpdateException,
 			IllegalArgumentException {
 		DateTime wanted = dateTimeParser().parseDateTime(expiry.trim());
-		Date achieved = support.updateExpiry(run, wanted.toDate());
+		Date achieved = support.updateExpiry(run, wanted.toDate(), req);
 		return dateTime().print(new DateTime(achieved));
 	}
 
 	@Override
 	@CallCounted
 	public String setStatus(String status) throws NoUpdateException {
-		support.permitUpdate(run);
+		support.permitUpdate(run, req);
 		run.setStatus(Status.valueOf(status.trim()));
 		return run.getStatus().toString();
 	}
@@ -180,7 +184,7 @@ abstract class RunREST implements TavernaServerRunREST, RunBean {
 	@CallCounted
 	public String setOutputFile(String filename) throws NoUpdateException,
 			FilesystemAccessException, BadStateChangeException {
-		support.permitUpdate(run);
+		support.permitUpdate(run, req);
 		if (filename != null && filename.length() == 0)
 			filename = null;
 		run.setOutputBaclavaFile(filename);
