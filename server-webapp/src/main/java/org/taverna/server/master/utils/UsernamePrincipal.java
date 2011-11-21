@@ -8,8 +8,6 @@ package org.taverna.server.master.utils;
 import java.io.Serializable;
 import java.security.Principal;
 
-import javax.servlet.ServletRequest;
-
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
 
@@ -20,10 +18,19 @@ import org.springframework.security.core.userdetails.UserDetails;
  */
 public class UsernamePrincipal implements Principal, Serializable {
 	private static final long serialVersionUID = 2703493248562435L;
+	public UsernamePrincipal(String username) {
+		this.name = username;
+	}
+
+	public UsernamePrincipal(Principal other) {
+		this.name = other.getName();
+	}
+
+	public UsernamePrincipal(Authentication auth) {
+		this(auth.getPrincipal());
+	}
 
 	public UsernamePrincipal(Object principal) {
-		if (principal instanceof Authentication)
-			principal = ((Authentication) principal).getPrincipal();
 		if (principal instanceof Principal)
 			this.name = ((Principal) principal).getName();
 		else if (principal instanceof String)
@@ -34,14 +41,7 @@ public class UsernamePrincipal implements Principal, Serializable {
 			this.name = principal.toString();
 	}
 
-	public UsernamePrincipal(Object principal, ServletRequest originatingMessage) {
-		this(principal);
-		if (originatingMessage != null)
-			ip = originatingMessage.getRemoteAddr();
-	}
-
 	private String name;
-	private String ip;
 
 	@Override
 	public String getName() {
@@ -50,10 +50,7 @@ public class UsernamePrincipal implements Principal, Serializable {
 
 	@Override
 	public String toString() {
-		if (ip == null)
-			return "Principal<" + name + ">";
-		else
-			return "Principal<" + name + "> (" + ip + ")";
+		return "Principal<" + name + ">";
 	}
 
 	@Override

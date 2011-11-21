@@ -21,7 +21,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import javax.servlet.ServletRequest;
 import javax.xml.bind.JAXBException;
 
 import org.apache.commons.logging.Log;
@@ -159,15 +158,15 @@ public class TavernaServerSupport {
 		stateModel.setAllowNewWorkflowRuns(allowNewWorkflowRuns);
 	}
 
-	public int getMaxSimultaneousRuns(ServletRequest req) {
-		Integer limit = policy.getMaxRuns(getPrincipal(req));
+	public int getMaxSimultaneousRuns() {
+		Integer limit = policy.getMaxRuns(getPrincipal());
 		if (limit == null)
 			return policy.getMaxRuns();
 		return min(limit.intValue(), policy.getMaxRuns());
 	}
 
-	public List<Workflow> getPermittedWorkflows(ServletRequest req) {
-		return policy.listPermittedWorkflows(getPrincipal(req));
+	public List<Workflow> getPermittedWorkflows() {
+		return policy.listPermittedWorkflows(getPrincipal());
 	}
 
 	public List<String> getListenerTypes() {
@@ -275,19 +274,16 @@ public class TavernaServerSupport {
 	 * 
 	 * @param run
 	 *            The workflow run to do the test on.
-	 * @param req
-	 *            The request that caused the webapp to be accessed.
 	 * @throws NoUpdateException
 	 *             If the current user is not permitted to update the run.
 	 */
-	public void permitUpdate(@NonNull TavernaRun run, ServletRequest req)
-			throws NoUpdateException {
+	public void permitUpdate(@NonNull TavernaRun run) throws NoUpdateException {
 		if (isSuperUser()) {
 			accessLog
 					.warn("check for admin powers passed; elevated access rights granted for update");
 			return; // Superusers are fully authorized to access others things
 		}
-		policy.permitUpdate(getPrincipal(req), run);
+		policy.permitUpdate(getPrincipal(), run);
 	}
 
 	/**
@@ -296,40 +292,35 @@ public class TavernaServerSupport {
 	 * 
 	 * @param run
 	 *            The workflow run to do the test on.
-	 * @param req
-	 *            The request that caused the webapp to be accessed.
 	 * @throws NoDestroyException
 	 *             If the current user is not permitted to destroy the run.
 	 */
-	public void permitDestroy(TavernaRun run, ServletRequest req)
-			throws NoDestroyException {
+	public void permitDestroy(TavernaRun run) throws NoDestroyException {
 		if (isSuperUser()) {
 			accessLog
 					.warn("check for admin powers passed; elevated access rights granted for destroy");
 			return; // Superusers are fully authorized to access others things
 		}
-		policy.permitDestroy(getPrincipal(req), run);
+		policy.permitDestroy(getPrincipal(), run);
 	}
 
 	/**
 	 * Gets the identity of the user currently accessing the webapp, which is
 	 * stored in a thread-safe way in the webapp's container's context.
 	 * 
-	 * @param req
-	 *            The request that caused the webapp to be accessed.
 	 * @return The identity of the user accessing the webapp.
 	 */
 	@NonNull
-	public UsernamePrincipal getPrincipal(ServletRequest req) {
+	public UsernamePrincipal getPrincipal() {
 		try {
 			Authentication auth = SecurityContextHolder.getContext()
 					.getAuthentication();
 			if (auth == null || !auth.isAuthenticated()) {
 				if (logGetPrincipalFailures)
 					log.warn("failed to get auth; going with <NOBODY>");
-				return new UsernamePrincipal("<NOBODY>", req);
+				return new UsernamePrincipal("<NOBODY>");
 			}
-			return new UsernamePrincipal(auth, req);
+			return new UsernamePrincipal(auth);
 		} catch (RuntimeException e) {
 			if (logGetPrincipalFailures)
 				log.info("failed to map principal", e);
@@ -342,8 +333,6 @@ public class TavernaServerSupport {
 	 * 
 	 * @param name
 	 *            The name of the run to look up.
-	 * @param req
-	 *            The request that caused the webapp to be accessed.
 	 * @return A workflow run handle that the current user has at least
 	 *         permission to read.
 	 * @throws UnknownRunException
@@ -351,14 +340,13 @@ public class TavernaServerSupport {
 	 *             have permission to see it.
 	 */
 	@NonNull
-	public TavernaRun getRun(@NonNull String name, ServletRequest req)
-			throws UnknownRunException {
+	public TavernaRun getRun(@NonNull String name) throws UnknownRunException {
 		if (isSuperUser()) {
 			accessLog
 					.info("check for admin powers passed; elevated access rights granted for read");
 			return runStore.getRun(name);
 		}
-		return runStore.getRun(getPrincipal(req), policy, name);
+		return runStore.getRun(getPrincipal(), policy, name);
 	}
 
 	/**
@@ -371,8 +359,6 @@ public class TavernaServerSupport {
 	 * @param configuration
 	 *            The configuration description to pass into the listener. The
 	 *            format of this string is up to the listener to define.
-	 * @param req
-	 *            The request that caused the webapp to be accessed.
 	 * @return A handle to the listener which can be used to further configure
 	 *         any properties.
 	 * @throws NoListenerException
@@ -384,9 +370,9 @@ public class TavernaServerSupport {
 	 */
 	@NonNull
 	public Listener makeListener(@NonNull TavernaRun run, @NonNull String type,
-			@NonNull String configuration, ServletRequest req)
-			throws NoListenerException, NoUpdateException {
-		permitUpdate(run, req);
+			@NonNull String configuration) throws NoListenerException,
+			NoUpdateException {
+		permitUpdate(run);
 		return listenerFactory.makeListener(run, type, configuration);
 	}
 
@@ -510,19 +496,17 @@ public class TavernaServerSupport {
 	 *            The name of the run.
 	 * @param run
 	 *            The workflow run. <i>Must</i> correspond to the name.
-	 * @param req
-	 *            The request that caused the webapp to be accessed.
 	 * @throws NoDestroyException
 	 *             If the user is not permitted to destroy the workflow run.
 	 * @throws UnknownRunException
 	 *             If the run is unknown (e.g., because it is already
 	 *             destroyed).
 	 */
-	public void unregisterRun(@NonNull String runName, @NonNull TavernaRun run,
-			ServletRequest req) throws NoDestroyException, UnknownRunException {
+	public void unregisterRun(@NonNull String runName, @NonNull TavernaRun run)
+			throws NoDestroyException, UnknownRunException {
 		if (run == null)
-			run = getRun(runName, req);
-		policy.permitDestroy(getPrincipal(req), run);
+			run = getRun(runName);
+		policy.permitDestroy(getPrincipal(), run);
 		runStore.unregisterRun(runName);
 		run.destroy();
 	}
@@ -535,8 +519,6 @@ public class TavernaServerSupport {
 	 *            The handle to the workflow run.
 	 * @param date
 	 *            When the workflow run should be expired.
-	 * @param req
-	 *            The request that caused the webapp to be accessed.
 	 * @return When the workflow run will actually be expired.
 	 * @throws NoDestroyException
 	 *             If the user is not permitted to destroy the workflow run.
@@ -544,9 +526,9 @@ public class TavernaServerSupport {
 	 *             destroy.)
 	 */
 	@NonNull
-	public Date updateExpiry(@NonNull TavernaRun run, @NonNull Date date,
-			ServletRequest req) throws NoDestroyException {
-		policy.permitDestroy(getPrincipal(req), run);
+	public Date updateExpiry(@NonNull TavernaRun run, @NonNull Date date)
+			throws NoDestroyException {
+		policy.permitDestroy(getPrincipal(), run);
 		run.setExpiry(date);
 		return run.getExpiry();
 	}
@@ -556,15 +538,12 @@ public class TavernaServerSupport {
 	 * 
 	 * @param workflow
 	 *            The workflow document (t2flow, scufl2?) to instantiate.
-	 * @param req
-	 *            The request that caused the webapp to be accessed.
 	 * @return The ID of the created workflow run.
 	 * @throws NoCreateException
 	 *             If the user is not permitted to create workflows.
 	 */
-	public String buildWorkflow(Workflow workflow, ServletRequest req)
-			throws NoCreateException {
-		UsernamePrincipal p = getPrincipal(req);
+	public String buildWorkflow(Workflow workflow) throws NoCreateException {
+		UsernamePrincipal p = getPrincipal();
 		if (!stateModel.getAllowNewWorkflowRuns())
 			throw new NoCreateException("run creation not currently enabled");
 		try {
@@ -638,8 +617,6 @@ public class TavernaServerSupport {
 	 *            The name of the run to look up
 	 * @param listenerName
 	 *            The name of the listener.
-	 * @param req
-	 *            The request that caused the webapp to be accessed.
 	 * @return The handle of the listener.
 	 * @throws NoListenerException
 	 *             If no such listener exists.
@@ -647,9 +624,9 @@ public class TavernaServerSupport {
 	 *             If no such workflow run exists, or if the user does not have
 	 *             permission to access it.
 	 */
-	public Listener getListener(String runName, String listenerName,
-			ServletRequest req) throws NoListenerException, UnknownRunException {
-		return getListener(getRun(runName, req), listenerName);
+	public Listener getListener(String runName, String listenerName)
+			throws NoListenerException, UnknownRunException {
+		return getListener(getRun(runName), listenerName);
 	}
 
 	/**

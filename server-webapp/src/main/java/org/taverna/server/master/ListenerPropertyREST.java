@@ -7,9 +7,6 @@ package org.taverna.server.master;
 
 import static org.taverna.server.master.TavernaServerImpl.log;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.core.Context;
-
 import org.taverna.server.master.TavernaServerImpl.SupportAware;
 import org.taverna.server.master.exceptions.NoListenerException;
 import org.taverna.server.master.exceptions.NoUpdateException;
@@ -25,8 +22,6 @@ import org.taverna.server.master.utils.InvocationCounter.CallCounted;
  */
 class ListenerPropertyREST implements TavernaServerListenersREST.Property,
 		ListenerPropertyBean {
-	@Context
-	HttpServletRequest req;
 	private TavernaServerSupport support;
 	private Listener listen;
 	private String propertyName;
@@ -62,7 +57,7 @@ class ListenerPropertyREST implements TavernaServerListenersREST.Property,
 	@CallCounted
 	public String setValue(String value) throws NoUpdateException,
 			NoListenerException {
-		support.permitUpdate(run,req);
+		support.permitUpdate(run);
 		listen.setProperty(propertyName, value);
 		return listen.getProperty(propertyName);
 	}

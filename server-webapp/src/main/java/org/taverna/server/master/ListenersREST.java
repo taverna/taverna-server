@@ -12,8 +12,6 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriBuilder;
 import javax.ws.rs.core.UriInfo;
@@ -34,10 +32,7 @@ import edu.umd.cs.findbugs.annotations.NonNull;
  * 
  * @author Donal Fellows
  */
-abstract class ListenersREST implements TavernaServerListenersREST,
-		ListenersBean {
-	@Context
-	HttpServletRequest req;
+abstract class ListenersREST implements TavernaServerListenersREST, ListenersBean {
 	private TavernaRun run;
 	private TavernaServerSupport support;
 
@@ -57,7 +52,7 @@ abstract class ListenersREST implements TavernaServerListenersREST,
 	public Response addListener(ListenerDefinition typeAndConfiguration,
 			UriInfo ui) throws NoUpdateException, NoListenerException {
 		String name = support.makeListener(run, typeAndConfiguration.type,
-				typeAndConfiguration.configuration, req).getName();
+				typeAndConfiguration.configuration).getName();
 		return created(
 				ui.getAbsolutePathBuilder().path("{listenerName}").build(name))
 				.build();
@@ -91,7 +86,6 @@ abstract class ListenersREST implements TavernaServerListenersREST,
 
 /**
  * Description of properties supported by {@link ListenersREST}.
- * 
  * @author Donal Fellows
  */
 interface ListenersBean extends SupportAware {

@@ -7,8 +7,6 @@ package org.taverna.server.master;
 
 import static java.util.UUID.randomUUID;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.UriInfo;
 
@@ -41,8 +39,6 @@ import org.taverna.server.port_description.InputDescription;
  * @author Donal Fellows
  */
 class InputREST implements TavernaServerInputREST, InputBean {
-	@Context
-	HttpServletRequest req;
 	private UriInfo ui;
 	private TavernaServerSupport support;
 	private TavernaRun run;
@@ -105,7 +101,7 @@ class InputREST implements TavernaServerInputREST, InputBean {
 	@CallCounted
 	public String setBaclavaFile(String filename) throws NoUpdateException,
 			BadStateChangeException, FilesystemAccessException {
-		support.permitUpdate(run,req);
+		support.permitUpdate(run);
 		run.setInputBaclavaFile(filename);
 		String i = run.getInputBaclavaFile();
 		return i == null ? "" : i;
@@ -126,7 +122,7 @@ class InputREST implements TavernaServerInputREST, InputBean {
 			return setRemoteInput(name, (InDesc.Reference) ac);
 		if (!(ac instanceof InDesc.File || ac instanceof InDesc.Value))
 			throw new BadPropertyValueException("unknown content type");
-		support.permitUpdate(run,req);
+		support.permitUpdate(run);
 		Input i = support.getInput(run, name);
 		if (i == null)
 			i = run.makeInput(name);
@@ -149,10 +145,10 @@ class InputREST implements TavernaServerInputREST, InputBean {
 		}
 		try {
 			File from = fileUtils.getFile(
-					support.getRun(mvm.get("runName").get(0),req),
+					support.getRun(mvm.get("runName").get(0)),
 					FalseDE.make(mvm.get("path").get(0)));
 			File to = run.getWorkingDirectory().makeEmptyFile(
-					support.getPrincipal(req), randomUUID().toString());
+					support.getPrincipal(), randomUUID().toString());
 
 			to.copy(from);
 
