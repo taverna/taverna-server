@@ -1,8 +1,6 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
 	<modelVersion>4.0.0</modelVersion>
-	<groupId>uk.org.taverna.server</groupId>
 	<artifactId>server-webapp</artifactId>
-	<version>2.3-SNAPSHOT</version>
 	<packaging>war</packaging>
 	<name>Taverna Server WebApp</name>
 	<description>This is the implementation of the web-app that provides the Taverna Server with its SOAP and REST faces. It relies on the worker process to handle the actual launching of workflow runs.</description>
@@ -50,8 +48,7 @@
 		<dependency>
 			<groupId>commons-logging</groupId>
 			<artifactId>commons-logging</artifactId>
-			<version>1.1.1</version>
-		</dependency>
+			</dependency>
 		<dependency>
 			<groupId>org.springframework</groupId>
 			<artifactId>spring-aop</artifactId>
@@ -82,7 +79,7 @@
 		<dependency>
 			<groupId>junit</groupId>
 			<artifactId>junit</artifactId>
-			<version>4.9</version>
+			<version>4.9</version><!--$NO-MVN-MAN-VER$-->
 			<scope>test</scope>
 		</dependency>
 		<dependency>
@@ -393,6 +390,58 @@
 						</dependency>
 					</dependencies>
 				</plugin>
+				<!--This plugin's configuration is used to store Eclipse m2e settings only. It has no influence on the Maven build itself.-->
+				<plugin>
+					<groupId>org.eclipse.m2e</groupId>
+					<artifactId>lifecycle-mapping</artifactId>
+					<version>1.0.0</version>
+					<configuration>
+						<lifecycleMappingMetadata>
+							<pluginExecutions>
+								<pluginExecution>
+									<pluginExecutionFilter>
+										<groupId>org.apache.maven.plugins</groupId>
+										<artifactId>maven-dependency-plugin</artifactId>
+										<versionRange>[2.0,)</versionRange>
+										<goals>
+											<goal>copy-dependencies</goal>
+											<goal>unpack</goal>
+										</goals>
+									</pluginExecutionFilter>
+									<action>
+										<ignore />
+									</action>
+								</pluginExecution>
+								<pluginExecution>
+									<pluginExecutionFilter>
+										<groupId>com.google.code.maven-svn-revision-number-plugin</groupId>
+										<artifactId>maven-svn-revision-number-plugin</artifactId>
+										<versionRange>[1.6,)</versionRange>
+										<goals>
+											<goal>revision</goal>
+										</goals>
+									</pluginExecutionFilter>
+									<action>
+										<execute />
+									</action>
+								</pluginExecution>
+								<pluginExecution>
+									<pluginExecutionFilter>
+										<groupId>org.datanucleus</groupId>
+										<artifactId>maven-datanucleus-plugin</artifactId>
+										<versionRange>[3.0.0-release,)</versionRange>
+										<goals>
+											<goal>enhance</goal>
+										</goals>
+									</pluginExecutionFilter>
+									<action>
+										<execute />
+									</action>
+								</pluginExecution>
+							</pluginExecutions>
+						</lifecycleMappingMetadata>
+					</configuration>
+				</plugin>
 			</plugins>
 		</pluginManagement>
 
@@ -458,7 +507,7 @@
 			</plugin>
 			<plugin>
 				<groupId>org.datanucleus</groupId>
-				<artifactId>maven-datanucleus-plugin</artifactId>
+				<artifactId>maven-datanucleus-plugin</artifactId><!--$NO-MVN-MAN-VER$-->
 				<version>3.0.0-release</version>
 				<configuration>
 					<metadataIncludes>

@@ -199,22 +199,42 @@ public abstract class SecurityContextDelegate implements TavernaSecurityContext 
 	 * Get an empty keystore for use with credentials (client certs, passwords,
 	 * etc.)
 	 * 
+	 * @param password
+	 *            The password to use for the keystore.
 	 * @return A keystore <i>back-end</i>, so we circumvent some of the more
 	 *         annoying features of the API.
 	 * @throws GeneralSecurityException
 	 */
-	protected KeyStore getInitialKeyStore() throws GeneralSecurityException {
-		return KeyStore.getInstance("UBER");
+	protected KeyStore getInitialKeyStore(char[] password)
+			throws GeneralSecurityException {
+		KeyStore ks = KeyStore.getInstance("UBER");
+		try {
+			ks.load(null, password);
+		} catch (IOException e) {
+			throw new GeneralSecurityException(
+					"problem initializing blank keystore", e);
+		}
+		return ks;
 	}
 
 	/**
 	 * Get an empty trust-store for use with trusted certificates.
 	 * 
+	 * @param password
+	 *            The password to use for the trust-store.
 	 * @return A trust-store
 	 * @throws GeneralSecurityException
 	 */
-	protected KeyStore getInitialTrustStore() throws GeneralSecurityException {
-		return KeyStore.getInstance("JCEKS");
+	protected KeyStore getInitialTrustStore(char[] password)
+			throws GeneralSecurityException {
+		KeyStore ks = KeyStore.getInstance("JCEKS");
+		try {
+			ks.load(null, password);
+		} catch (IOException e) {
+			throw new GeneralSecurityException(
+					"problem initializing blank keystore", e);
+		}
+		return ks;
 	}
 
 	/**
@@ -243,8 +263,8 @@ public abstract class SecurityContextDelegate implements TavernaSecurityContext 
 			password = generateNewPassword();
 
 			log.info("constructing merged keystore");
-			KeyStore truststore = getInitialTrustStore();
-			KeyStore keystore = getInitialKeyStore();
+			KeyStore truststore = getInitialTrustStore(password);
+			KeyStore keystore = getInitialKeyStore(password);
 			HashMap<URI, String> uriToAliasMap = new HashMap<URI, String>();
 			int trustedCount = 0, keyCount = 0;
 
