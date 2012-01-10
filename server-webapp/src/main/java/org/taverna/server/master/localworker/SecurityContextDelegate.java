@@ -5,6 +5,8 @@
  */
 package org.taverna.server.master.localworker;
 
+import static java.lang.String.format;
+import static java.util.Arrays.fill;
 import static java.util.UUID.randomUUID;
 
 import java.io.ByteArrayInputStream;
@@ -14,6 +16,7 @@ import java.io.InputStream;
 import java.net.URI;
 import java.rmi.RemoteException;
 import java.security.GeneralSecurityException;
+import java.security.Key;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.cert.Certificate;
@@ -25,6 +28,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Set;
 
+import javax.security.auth.x500.X500Principal;
 import javax.ws.rs.core.HttpHeaders;
 import javax.xml.ws.handler.MessageContext;
 
@@ -55,10 +59,17 @@ public abstract class SecurityContextDelegate implements TavernaSecurityContext 
 	private final List<Trust> trusted = new ArrayList<Trust>();
 	private final RemoteRunDelegate run;
 	private final Object lock = new Object();
-	private final SecurityContextFactory factory;
+	final SecurityContextFactory factory;
+	private static final String[] DEFAULT_CERT_FIELD_NAMES = { "CN",
+			"COMMONNAME", "COMMON NAME", "COMMON_NAME", "OU",
+			"ORGANIZATIONALUNITNAME", "ORGANIZATIONAL UNIT NAME", "O",
+			"ORGANIZATIONNAME", "ORGANIZATION NAME" };
 
-	private transient KeyStore keystore;
-	private transient char[] password;
+	protected String getPrincipalName(X500Principal principal) {
+		return factory.x500Utils.getName(principal, DEFAULT_CERT_FIELD_NAMES);
+	}
+
+	private transient Keystore keystore;
 	private transient HashMap<URI, String> uriToAliasMap;
 
 	/** The type of certificates that are processed if we don't say otherwise. */
@@ -156,14 +167,14 @@ public abstract class SecurityContextDelegate implements TavernaSecurityContext 
 			contentsAsStream = new ByteArrayInputStream(t.certificateBytes);
 			t.certificateFile = null;
 		} else if (t.certificateFile == null
-				|| t.certificateFile.trim().length() == 0)
+				|| t.certificateFile.trim().isEmpty())
 			throw new InvalidCredentialException(
 					"absent or empty certificateFile");
 		else {
 			contentsAsStream = contents(t.certificateFile);
 			t.certificateBytes = null;
 		}
-		if (t.fileType == null || t.fileType.trim().length() == 0)
+		if (t.fileType == null || t.fileType.trim().isEmpty())
 			t.fileType = DEFAULT_CERTIFICATE_TYPE;
 		t.fileType = t.fileType.trim();
 		try {
@@ -196,48 +207,6 @@ public abstract class SecurityContextDelegate implements TavernaSecurityContext 
 	}
 
 	/**
-	 * Get an empty keystore for use with credentials (client certs, passwords,
-	 * etc.)
-	 * 
-	 * @param password
-	 *            The password to use for the keystore.
-	 * @return A keystore <i>back-end</i>, so we circumvent some of the more
-	 *         annoying features of the API.
-	 * @throws GeneralSecurityException
-	 */
-	protected KeyStore getInitialKeyStore(char[] password)
-			throws GeneralSecurityException {
-		KeyStore ks = KeyStore.getInstance("UBER");
-		try {
-			ks.load(null, password);
-		} catch (IOException e) {
-			throw new GeneralSecurityException(
-					"problem initializing blank keystore", e);
-		}
-		return ks;
-	}
-
-	/**
-	 * Get an empty trust-store for use with trusted certificates.
-	 * 
-	 * @param password
-	 *            The password to use for the trust-store.
-	 * @return A trust-store
-	 * @throws GeneralSecurityException
-	 */
-	protected KeyStore getInitialTrustStore(char[] password)
-			throws GeneralSecurityException {
-		KeyStore ks = KeyStore.getInstance("JCEKS");
-		try {
-			ks.load(null, password);
-		} catch (IOException e) {
-			throw new GeneralSecurityException(
-					"problem initializing blank keystore", e);
-		}
-		return ks;
-	}
-
-	/**
 	 * Builds and transfers a keystore with suitable credentials to the back-end
 	 * workflow execution engine.
 	 * 
@@ -263,8 +232,8 @@ public abstract class SecurityContextDelegate implements TavernaSecurityContext 
 			password = generateNewPassword();
 
 			log.info("constructing merged keystore");
-			KeyStore truststore = getInitialTrustStore(password);
-			KeyStore keystore = getInitialKeyStore(password);
+			Truststore truststore = new Truststore(password);
+			Keystore keystore = new Keystore(password);
 			HashMap<URI, String> uriToAliasMap = new HashMap<URI, String>();
 			int trustedCount = 0, keyCount = 0;
 
@@ -272,11 +241,10 @@ public abstract class SecurityContextDelegate implements TavernaSecurityContext 
 				try {
 					for (Trust t : trusted)
 						for (Certificate cert : t.loadedCertificates) {
-							addCertificateToTruststore(truststore, cert);
+							truststore.addCertificate(cert);
 							trustedCount++;
 						}
 
-					this.password = password;
 					this.uriToAliasMap = uriToAliasMap;
 					this.keystore = keystore;
 					for (Credential c : credentials) {
@@ -284,7 +252,6 @@ public abstract class SecurityContextDelegate implements TavernaSecurityContext 
 						keyCount++;
 					}
 				} finally {
-					this.password = null;
 					this.uriToAliasMap = null;
 					this.keystore = null;
 					credentials.clear();
@@ -295,8 +262,8 @@ public abstract class SecurityContextDelegate implements TavernaSecurityContext 
 
 			byte[] trustbytes = null, keybytes = null;
 			try {
-				trustbytes = serialize(truststore, password);
-				keybytes = serialize(keystore, password);
+				trustbytes = truststore.serialize();
+				keybytes = keystore.serialize();
 
 				// Now we've built the security information, ship it off...
 
@@ -324,23 +291,13 @@ public abstract class SecurityContextDelegate implements TavernaSecurityContext 
 	private static void blankOut(char[] ary) {
 		if (ary == null)
 			return;
-		for (int i = 0; i < ary.length; i++)
-			ary[i] = ' ';
+		fill(ary, ' ');
 	}
 
 	private static void blankOut(byte[] ary) {
 		if (ary == null)
 			return;
-		for (int i = 0; i < ary.length; i++)
-			ary[i] = 0;
-	}
-
-	private static byte[] serialize(KeyStore ks, char[] password)
-			throws GeneralSecurityException, IOException {
-		ByteArrayOutputStream stream = new ByteArrayOutputStream();
-		ks.store(stream, password);
-		stream.close();
-		return stream.toByteArray();
+		fill(ary, (byte) 0);
 	}
 
 	/**
@@ -348,29 +305,6 @@ public abstract class SecurityContextDelegate implements TavernaSecurityContext 
 	 */
 	protected char[] generateNewPassword() {
 		return randomUUID().toString().toCharArray();
-	}
-
-	/**
-	 * Adds a service certificate to the set that are trusted.
-	 * 
-	 * @param ts
-	 *            The trust-store.
-	 * @param cert
-	 *            The certificate to add
-	 * @throws KeyStoreException
-	 */
-	protected void addCertificateToTruststore(KeyStore ts, Certificate cert)
-			throws KeyStoreException {
-		X509Certificate c = (X509Certificate) cert;
-		String owner = factory.x500Utils.getName(c.getSubjectX500Principal(),
-				"CN", "COMMONNAME", "OU", "ORGANIZATIONALUNITNAME", "O",
-				"ORGANIZATIONNAME");
-		String issuer = factory.x500Utils.getName(c.getIssuerX500Principal(),
-				"CN", "COMMONNAME", "OU", "ORGANIZATIONALUNITNAME", "O",
-				"ORGANIZATIONNAME");
-		String alias = "trustedcert#" + owner + "#" + issuer + "#"
-				+ factory.x500Utils.getSerial(c);
-		ts.setCertificateEntry(alias, c);
 	}
 
 	/**
@@ -386,7 +320,7 @@ public abstract class SecurityContextDelegate implements TavernaSecurityContext 
 			throws KeyStoreException {
 		if (uriToAliasMap.containsKey(c.serviceURI))
 			log.warn("duplicate URI in alias mapping: " + c.serviceURI);
-		keystore.setKeyEntry(alias, c.loadedKey, password, c.loadedTrustChain);
+		keystore.addKey(alias, c.loadedKey, c.loadedTrustChain);
 		uriToAliasMap.put(c.serviceURI, alias);
 	}
 
@@ -486,6 +420,152 @@ public abstract class SecurityContextDelegate implements TavernaSecurityContext 
 						log.warn("failed to revalidate trust assertion: " + t,
 								e);
 					}
+		}
+	}
+
+	/**
+	 * A trust store that can only be added to or serialized. Only trusted
+	 * certificates can be placed in it.
+	 * 
+	 * @author Donal Fellows
+	 */
+	class Truststore {
+		private KeyStore ks;
+		private char[] password;
+
+		Truststore(char[] password) throws GeneralSecurityException {
+			this.password = password.clone();
+			ks = KeyStore.getInstance("UBER", "BC");
+			try {
+				ks.load(null, this.password);
+			} catch (IOException e) {
+				throw new GeneralSecurityException(
+						"problem initializing blank truststore", e);
+			}
+		}
+
+		/**
+		 * Add a trusted certificate to the truststore. No certificates can be
+		 * added after the truststore is serialized.
+		 * 
+		 * @param cert
+		 *            The certificate (typically belonging to a root CA) to add.
+		 * @throws KeyStoreException
+		 *             If anything goes wrong.
+		 */
+		public void addCertificate(Certificate cert) throws KeyStoreException {
+			if (ks == null)
+				throw new IllegalStateException("truststore already written");
+			X509Certificate c = (X509Certificate) cert;
+			String alias = format("trustedcert#%s#%s#%s",
+					getPrincipalName(c.getSubjectX500Principal()),
+					getPrincipalName(c.getIssuerX500Principal()),
+					factory.x500Utils.getSerial(c));
+			ks.setCertificateEntry(alias, c);
+		}
+
+		/**
+		 * Get the byte serialization of this truststore. This can only be
+		 * fetched exactly once.
+		 * 
+		 * @return The serialization.
+		 * @throws GeneralSecurityException
+		 *             If anything goes wrong.
+		 */
+		public byte[] serialize() throws GeneralSecurityException, IOException {
+			if (ks == null)
+				throw new IllegalStateException("truststore already written");
+			ByteArrayOutputStream stream = new ByteArrayOutputStream();
+			try {
+				ks.store(stream, password);
+				stream.close();
+			} catch (IOException e) {
+				throw new GeneralSecurityException(
+						"problem serializing truststore", e);
+			}
+			fill(password, ' ');
+			ks = null;
+			return stream.toByteArray();
+		}
+
+		@Override
+		protected void finalize() {
+			fill(password, ' ');
+			ks = null;
+		}
+	}
+
+	/**
+	 * A key store that can only be added to or serialized. Only keys can be
+	 * placed in it.
+	 * 
+	 * @author Donal Fellows
+	 */
+	class Keystore {
+		private KeyStore ks;
+		private char[] password;
+
+		Keystore(char[] password) throws GeneralSecurityException {
+			this.password = password.clone();
+
+			ks = KeyStore.getInstance("UBER", "BC");
+			try {
+				ks.load(null, password);
+			} catch (IOException e) {
+				throw new GeneralSecurityException(
+						"problem initializing blank keystore", e);
+			}
+		}
+
+		/**
+		 * Add a key to the keystore. No keys can be added after the keystore is
+		 * serialized.
+		 * 
+		 * @param alias
+		 *            The alias of the key.
+		 * @param key
+		 *            The secret/private key to add.
+		 * @param trustChain
+		 *            The trusted certificate chain of the key. Should be
+		 *            <tt>null</tt> for secret keys.
+		 * @throws KeyStoreException
+		 *             If anything goes wrong.
+		 */
+		public void addKey(String alias, Key key, Certificate[] trustChain)
+				throws KeyStoreException {
+			if (ks == null)
+				throw new IllegalStateException("keystore already written");
+			ks.setKeyEntry(alias, key, password, trustChain);
+		}
+
+		/**
+		 * Get the byte serialization of this keystore. This can only be fetched
+		 * exactly once.
+		 * 
+		 * @return The serialization.
+		 * @throws GeneralSecurityException
+		 *             If anything goes wrong.
+		 */
+		public byte[] serialize() throws GeneralSecurityException {
+			if (ks == null)
+				throw new IllegalStateException("keystore already written");
+			ByteArrayOutputStream stream = new ByteArrayOutputStream();
+			try {
+				ks.store(stream, password);
+				stream.close();
+			} catch (IOException e) {
+				throw new GeneralSecurityException(
+						"problem serializing keystore", e);
+			}
+			fill(password, ' ');
+			ks = null;
+			return stream.toByteArray();
+		}
+
+		@Override
+		protected void finalize() {
+			fill(password, ' ');
+			ks = null;
 		}
 	}
 }

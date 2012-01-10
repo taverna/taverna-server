@@ -9,6 +9,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.Charset;
+import java.security.Key;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
@@ -17,7 +18,6 @@ import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 
 import javax.crypto.spec.SecretKeySpec;
-import javax.security.auth.x500.X500Principal;
 
 import org.taverna.server.master.common.Credential;
 import org.taverna.server.master.exceptions.InvalidCredentialException;
@@ -108,13 +108,17 @@ class SecurityContextDelegateImpl extends SecurityContextDelegate {
 			Credential.Password passwordDescriptor)
 			throws InvalidCredentialException {
 		if (passwordDescriptor.username == null
-				|| passwordDescriptor.username.trim().length() == 0)
+				|| passwordDescriptor.username.trim().isEmpty())
 			throw new InvalidCredentialException("absent or empty username");
 		String keyToSave = passwordDescriptor.username
 				+ USERNAME_PASSWORD_SEPARATOR + passwordDescriptor.password;
-		passwordDescriptor.loadedKey = new SecretKeySpec(
-				keyToSave.getBytes(UTF8), USERNAME_PASSWORD_KEY_ALGORITHM);
+		passwordDescriptor.loadedKey = encodeKey(keyToSave);
 		passwordDescriptor.loadedTrustChain = null;
+	}
+
+	private static Key encodeKey(String key) {
+		return new SecretKeySpec(key.getBytes(UTF8),
+				USERNAME_PASSWORD_KEY_ALGORITHM);
 	}
 
 	/**
@@ -160,7 +164,7 @@ class SecurityContextDelegateImpl extends SecurityContextDelegate {
 			NoSuchAlgorithmException, CertificateException, IOException,
 			UnrecoverableKeyException {
 		if (keypairDescriptor.credentialName == null
-				|| keypairDescriptor.credentialName.trim().length() == 0)
+				|| keypairDescriptor.credentialName.trim().isEmpty())
 			throw new InvalidCredentialException(
 					"absent or empty credentialName");
 
@@ -171,7 +175,7 @@ class SecurityContextDelegateImpl extends SecurityContextDelegate {
 					keypairDescriptor.credentialBytes);
 			keypairDescriptor.credentialFile = null;
 		} else if (keypairDescriptor.credentialFile == null
-				|| keypairDescriptor.credentialFile.trim().length() == 0)
+				|| keypairDescriptor.credentialFile.trim().isEmpty())
 			throw new InvalidCredentialException(
 					"absent or empty credentialFile");
 		else {
@@ -179,7 +183,7 @@ class SecurityContextDelegateImpl extends SecurityContextDelegate {
 			keypairDescriptor.credentialBytes = new byte[0];
 		}
 		if (keypairDescriptor.fileType == null
-				|| keypairDescriptor.fileType.trim().length() == 0)
+				|| keypairDescriptor.fileType.trim().isEmpty())
 			keypairDescriptor.fileType = KeyStore.getDefaultType();
 		keypairDescriptor.fileType = keypairDescriptor.fileType.trim();
 
@@ -199,7 +203,8 @@ class SecurityContextDelegateImpl extends SecurityContextDelegate {
 					"no such credential in key store");
 		keypairDescriptor.loadedTrustChain = ks
 				.getCertificateChain(keypairDescriptor.credentialName);
-		if (keypairDescriptor.loadedTrustChain == null)
+		if (keypairDescriptor.loadedTrustChain == null
+				|| keypairDescriptor.loadedTrustChain.length == 0)
 			throw new InvalidCredentialException(
 					"could not establish trust chain for credential");
 	}
@@ -214,11 +219,9 @@ class SecurityContextDelegateImpl extends SecurityContextDelegate {
 	protected void addKeypairToKeystore(Credential.KeyPair c)
 			throws KeyStoreException {
 		X509Certificate subjectCert = (X509Certificate) c.loadedTrustChain[0];
-		X500Principal subject = subjectCert.getSubjectX500Principal();
-		X500Principal issuer = subjectCert.getIssuerX500Principal();
 		String alias = "keypair#"
-				+ x500Utils.getName(subject, "CN", "COMMONNAME") + "#"
-				+ x500Utils.getName(issuer, "CN", "COMMONNAME") + "#"
+				+ getPrincipalName(subjectCert.getSubjectX500Principal()) + "#"
+				+ getPrincipalName(subjectCert.getIssuerX500Principal()) + "#"
 				+ x500Utils.getSerial(subjectCert);
 		addKeypairToKeystore(alias, c);
 	}
@@ -232,7 +235,7 @@ class SecurityContextDelegateImpl extends SecurityContextDelegate {
 		// Proxies are just normal credentials at this point
 		validateKeyCredential(c);
 
-		if (c.authenticationService.toString().length() == 0)
+		if (c.authenticationService.toString().isEmpty())
 			throw new InvalidCredentialException(
 					"missing authenticationService");
 		if (c.dorianService.toString().length() == 0)
