@@ -44,7 +44,7 @@ public class SecurityContextFactory implements
 	private transient BouncyCastleProvider provider;
 
 	private Log log() {
-		return getLog("Taverna.Server.LocalWorker");
+		return getLog("Taverna.Server.LocalWorker.Security");
 	}
 
 	@SuppressWarnings("ST_WRITE_TO_STATIC_FROM_INSTANCE_METHOD")
