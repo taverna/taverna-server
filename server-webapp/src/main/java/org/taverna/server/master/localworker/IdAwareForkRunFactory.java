@@ -30,6 +30,7 @@ import java.util.Arrays;
 import java.util.Calendar;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 
 import javax.annotation.PostConstruct;
@@ -308,21 +309,32 @@ public class IdAwareForkRunFactory extends AbstractRemoteRunFactory {
 		private int lastStartupCheckCount;
 		private Integer lastExitCode;
 
-		MetaFactoryImpl() throws IOException {
-			ProcessBuilder p = new ProcessBuilder(getJavaBinary());
+		/**
+		 * Construct the command to run the meta-factory process.
+		 * 
+		 * @param args
+		 *            The live list of arguments to pass.
+		 */
+		private void initFactoryArgs(List<String> args) {
+			args.add(getJavaBinary());
 			String pwf = getPasswordFile();
 			if (pwf != null) {
-				p.command().add("-Dpassword.file=" + pwf);
+				args.add("-Dpassword.file=" + pwf);
 			}
-			p.command().add("-jar");
-			p.command().add(getServerForkerJar());
-			p.command().add(getJavaBinary());
-			p.command().addAll(asList(getExtraArguments()));
-			p.command().add("-jar");
-			p.command().add(getServerWorkerJar());
+			args.add("-jar");
+			args.add(getServerForkerJar());
+			args.add(getJavaBinary());
+			args.addAll(asList(getExtraArguments()));
+			args.add("-jar");
+			args.add(getServerWorkerJar());
 			if (getExecuteWorkflowScript() == null)
 				log.fatal("no execute workflow script");
-			p.command().add(getExecuteWorkflowScript());
+			args.add(getExecuteWorkflowScript());
+		}
+
+		MetaFactoryImpl() throws IOException {
+			ProcessBuilder p = new ProcessBuilder();
+			initFactoryArgs(p.command());
 			p.redirectErrorStream(true);
 			p.directory(new File(getProperty("javax.servlet.context.tempdir",
 					getProperty("java.io.tmpdir"))));
