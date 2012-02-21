@@ -91,19 +91,21 @@
 					<version>1.0.0</version>
 					<configuration>
 						<lifecycleMappingMetadata>
-							<pluginExecution>
-								<pluginExecutionFilter>
-									<groupId>org.apache.maven.plugins</groupId>
-									<artifactId>maven-assembly-plugin</artifactId>
-                                    <versionRange>[1.0,)</versionRange>
-                                    <goals>
-                                    	<goal>single</goal>
-                                    </goals>
-								</pluginExecutionFilter>
-								<action>
-									<execute />
-								</action>
-							</pluginExecution>
+							<pluginExecutions>
+								<pluginExecution>
+									<pluginExecutionFilter>
+										<groupId>org.apache.maven.plugins</groupId>
+										<artifactId>maven-assembly-plugin</artifactId>
+                                    	<versionRange>[2.0,)</versionRange>
+                                    	<goals>
+                                    		<goal>single</goal>
+                                    	</goals>
+									</pluginExecutionFilter>
+									<action>
+										<execute />
+									</action>
+								</pluginExecution>
+							</pluginExecutions>
 						</lifecycleMappingMetadata>
 					</configuration>
 				</plugin>
