@@ -333,11 +333,7 @@ public class IdAwareForkRunFactory extends AbstractRemoteRunFactory {
 			process = p.start();
 			channel = new PrintWriter(new BufferedWriter(
 					new OutputStreamWriter(process.getOutputStream())), true);
-			Thread logger = new Thread(
-					new OutputLogger("secure-fork", process),
-					"secure-fork.Logger");
-			logger.setDaemon(true);
-			logger.start();
+			new StdOut("secure-fork", process);
 		}
 
 		@Override
@@ -490,42 +486,6 @@ public class IdAwareForkRunFactory extends AbstractRemoteRunFactory {
 		forker.make(username);
 	}
 
-	private static class OutputLogger implements Runnable {
-		private final Log log;
-
-		OutputLogger(String name, Process process) {
-			log = getLog("Taverna.Server.LocalWorker." + name);
-			this.uniqueName = name;
-			this.br = new BufferedReader(new InputStreamReader(
-					process.getInputStream()));
-		}
-
-		private String uniqueName;
-		private BufferedReader br;
-
-		@Override
-		public void run() {
-			try {
-				String line;
-				while (true) {
-					line = br.readLine();
-					if (line == null)
-						break;
-					log.info(uniqueName + " subprocess output: " + line);
-				}
-			} catch (IOException e) {
-				// Do nothing...
-			} catch (Exception e) {
-				log.warn("failure in reading from " + uniqueName, e);
-			} finally {
-				try {
-					br.close();
-				} catch (Throwable e) {
-				}
-			}
-		}
-	}
-
 	/**
 	 * Destroys the subprocess that manufactures runs.
 	 */
@@ -639,5 +599,42 @@ public class IdAwareForkRunFactory extends AbstractRemoteRunFactory {
 		else
 			log.info("configured secureForkPasswordFile from context as "
 					+ state.getPasswordFile());
+	}
+}
+
+class StdOut extends Thread {
+	private final Log log;
+	private final String uniqueName;
+	private final BufferedReader br;
+
+	StdOut(String name, Process process) {
+		super(name + ".StdOutLogger");
+		log = getLog("Taverna.Server.LocalWorker." + name);
+		uniqueName = name;
+		br = new BufferedReader(new InputStreamReader(process.getInputStream()));
+		setDaemon(true);
+		start();
+	}
+
+	private void copyLinesToLog() throws IOException {
+		String line;
+		while ((line = br.readLine()) != null)
+			log.info(uniqueName + ": " + line);
+	}
+
+	@Override
+	public void run() {
+		try {
+			copyLinesToLog();
+		} catch (IOException e) {
+			// Do nothing...
+		} catch (Exception e) {
+			log.warn("failure in reading from " + uniqueName, e);
+		} finally {
+			try {
+				br.close();
+			} catch (Throwable e) {
+			}
+		}
 	}
 }
