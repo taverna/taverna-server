@@ -8,15 +8,20 @@ package org.taverna.server.master.localworker;
 import static java.lang.System.getSecurityManager;
 import static java.lang.System.setProperty;
 import static java.lang.System.setSecurityManager;
+import static java.net.InetAddress.getLocalHost;
 import static java.rmi.registry.LocateRegistry.createRegistry;
 import static java.rmi.registry.LocateRegistry.getRegistry;
 import static java.rmi.registry.Registry.REGISTRY_PORT;
+import static java.rmi.server.RMISocketFactory.getDefaultSocketFactory;
 import static org.taverna.server.master.TavernaServerImpl.JMX_ROOT;
 
+import java.io.IOException;
+import java.net.ServerSocket;
 import java.rmi.RMISecurityManager;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
+import java.rmi.server.RMIServerSocketFactory;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.ArrayList;
 import java.util.Date;
@@ -30,6 +35,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Required;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.task.TaskExecutor;
 import org.springframework.jmx.export.annotation.ManagedAttribute;
 import org.springframework.jmx.export.annotation.ManagedResource;
@@ -63,6 +69,27 @@ public abstract class AbstractRemoteRunFactory implements ListenerFactory,
 		log = null;
 	}
 
+	@Value("${rmi.localhostOnly}")
+	private boolean rmiLocalhostOnly;
+
+	private Registry makeRegistry(int port) throws RemoteException {
+		if (rmiLocalhostOnly) {
+			setProperty("java.rmi.server.hostname", "127.0.0.1");
+			return createRegistry(port,
+					getDefaultSocketFactory(),
+					new RMIServerSocketFactory() {
+						@Override
+						public ServerSocket createServerSocket(int port)
+								throws IOException {
+							return new ServerSocket(port, 0,
+									getLocalHost());
+						}
+					});
+		} else {
+			return createRegistry(port);
+		}
+	}
+
 	/**
 	 * @return A handle to the current RMI registry.
 	 */
@@ -86,8 +113,7 @@ public abstract class AbstractRemoteRunFactory implements ListenerFactory,
 			log.warn("Will build new registry, "
 					+ "but service restart ability is at risk.");
 			try {
-				setProperty("java.rmi.server.hostname", "127.0.0.1");
-				registry = createRegistry(getRegistryPort());
+				registry = makeRegistry(getRegistryPort());
 				registry.list();
 				return registry;
 			} catch (RemoteException e2) {
@@ -104,8 +130,7 @@ public abstract class AbstractRemoteRunFactory implements ListenerFactory,
 		} catch (RemoteException e) {
 			log.warn("Failed to get working RMI registry handle on backup port.");
 			try {
-				setProperty("java.rmi.server.hostname", "127.0.0.1");
-				registry = createRegistry(REGISTRY_PORT);
+				registry = makeRegistry(REGISTRY_PORT);
 				registry.list();
 				return registry;
 			} catch (RemoteException e2) {
