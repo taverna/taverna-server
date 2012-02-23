@@ -173,7 +173,8 @@ public class WorkerCore extends UnicastRemoteObject implements Worker,
 	public void initWorker(String executeWorkflowCommand, String workflow,
 			File workingDir, File inputBaclava, Map<String, File> inputFiles,
 			Map<String, String> inputValues, File outputBaclava,
-			File securityDir, char[] password) throws IOException {
+			File securityDir, char[] password, Map<String, String> environment)
+			throws IOException {
 		ProcessBuilder pb = new ProcessBuilder();
 		/*
 		 * WARNING! HERE THERE BE DRAGONS! BE CAREFUL HERE!
@@ -277,6 +278,9 @@ public class WorkerCore extends UnicastRemoteObject implements Worker,
 		// Indicate what working directory to use
 		pb.directory(workingDir);
 		wd = workingDir;
+
+		// Merge any options we have had imposed on us from outside
+		pb.environment().putAll(environment);
 
 		// Patch the environment to deal with TAVUTILS-17
 		assert pb.environment().get("PATH") != null;

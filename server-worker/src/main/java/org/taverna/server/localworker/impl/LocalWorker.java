@@ -61,6 +61,9 @@ import edu.umd.cs.findbugs.annotations.SuppressWarnings;
  */
 @SuppressWarnings({ "SE_BAD_FIELD", "SE_NO_SERIALVERSIONID" })
 public class LocalWorker extends UnicastRemoteObject implements RemoteSingleRun {
+	// FIXME Use agreed environment name for HELIO CIS token
+	private static final String HELIO_TOKEN_NAME = "HELIO_CIS_TOKEN";
+
 	private final String executeWorkflowCommand;
 	private final String workflow;
 	private File base;
@@ -255,6 +258,7 @@ public class LocalWorker extends UnicastRemoteObject implements RemoteSingleRun 
 	File contextDirectory;
 	char[] keystorePassword = new char[0];
 	FileCleaningTracker fileTracker = new FileCleaningTracker();
+	Map<String,String> environment = new HashMap<String,String>();
 
 	@SuppressWarnings("SE_INNER_CLASS")
 	class SecurityDelegate extends UnicastRemoteObject implements
@@ -375,6 +379,11 @@ public class LocalWorker extends UnicastRemoteObject implements RemoteSingleRun 
 			for (Entry<URI, String> site : uriToAliasMap.entrySet())
 				lines.add(site.getKey().toASCIIString() + " " + site.getValue());
 			// write(URI_ALIAS_MAP, lines);
+		}
+
+		@Override
+		public void setHelioToken(String helioToken) {
+			environment.put(HELIO_TOKEN_NAME, helioToken);
 		}
 	}
 
@@ -526,7 +535,7 @@ public class LocalWorker extends UnicastRemoteObject implements RemoteSingleRun 
 					core.initWorker(executeWorkflowCommand, workflow, base,
 							inputBaclavaFile, inputRealFiles, inputValues,
 							outputBaclavaFile, contextDirectory,
-							keystorePassword);
+							keystorePassword, environment);
 					for (int i = 0; keystorePassword != null
 							&& i < keystorePassword.length; i++)
 						keystorePassword[i] = ' ';

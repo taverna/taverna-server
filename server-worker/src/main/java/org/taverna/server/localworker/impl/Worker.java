@@ -49,6 +49,9 @@ public interface Worker {
 	 * @param keystorePassword
 	 *            The password to the keystore and truststore. May be
 	 *            <tt>null</tt> if no security information is provided.
+	 * @param environment
+	 *            Any environment variables that need to be added to the
+	 *            invokation.
 	 * @throws Exception
 	 *             If any of quite a large number of things goes wrong.
 	 */
@@ -56,7 +59,8 @@ public interface Worker {
 			File workingDir, File inputBaclavaFile,
 			Map<String, File> inputRealFiles, Map<String, String> inputValues,
 			File outputBaclavaFile, File contextDirectory,
-			char[] keystorePassword) throws Exception;
+			char[] keystorePassword, Map<String, String> environment)
+			throws Exception;
 
 	/**
 	 * Kills off the subprocess if it exists and is alive.

@@ -5,10 +5,13 @@
  */
 package org.taverna.server.master.localworker;
 
+import static javax.xml.ws.handler.MessageContext.HTTP_REQUEST_HEADERS;
+
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.Charset;
+import java.rmi.RemoteException;
 import java.security.Key;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
@@ -16,9 +19,17 @@ import java.security.NoSuchAlgorithmException;
 import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
+import java.util.List;
+import java.util.Map;
 
 import javax.crypto.spec.SecretKeySpec;
+import javax.ws.rs.core.HttpHeaders;
+import javax.ws.rs.core.MultivaluedMap;
+import javax.xml.ws.handler.MessageContext;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.taverna.server.localworker.remote.RemoteSecurityContext;
 import org.taverna.server.master.common.Credential;
 import org.taverna.server.master.exceptions.InvalidCredentialException;
 import org.taverna.server.master.utils.UsernamePrincipal;
@@ -31,12 +42,14 @@ import org.taverna.server.master.utils.X500Utils;
  * @author Donal Fellows
  */
 class SecurityContextDelegateImpl extends SecurityContextDelegate {
+	private Log log = LogFactory.getLog("Taverna.Server.LocalWorker");
 	private static final char USERNAME_PASSWORD_SEPARATOR = '\u0000';
 	private static final String USERNAME_PASSWORD_KEY_ALGORITHM = "DUMMY";
 	/** What passwords are encoded as. */
 	private static final Charset UTF8 = Charset.forName("UTF-8");
 
 	private X500Utils x500Utils;
+	private transient String helioToken;
 
 	/**
 	 * Initialise the context delegate.
@@ -247,5 +260,40 @@ class SecurityContextDelegateImpl extends SecurityContextDelegate {
 		String alias = "cagridproxy#" + c.authenticationService + " "
 				+ c.dorianService;
 		addKeypairToKeystore(alias, c);
+	}
+
+	// FIXME Use agreed header name for HELIO CIS token
+	private static final String HELIO_CIS_TOKEN = "X-Helio-CIS";
+
+	@Override
+	public void initializeSecurityFromSOAPContext(MessageContext context) {
+		// does nothing
+		@SuppressWarnings("unchecked")
+		Map<String, List<String>> headers = (Map<String, List<String>>) context
+				.get(HTTP_REQUEST_HEADERS);
+		if (factory.supportHelioToken && headers.containsKey(HELIO_CIS_TOKEN)) {
+			helioToken = headers.get(HELIO_CIS_TOKEN).get(0);
+		}
+	}
+
+	@Override
+	public void initializeSecurityFromRESTContext(HttpHeaders context) {
+		// does nothing
+		MultivaluedMap<String, String> headers = context.getRequestHeaders();
+		if (factory.supportHelioToken && headers.containsKey(HELIO_CIS_TOKEN)) {
+			helioToken = headers.get(HELIO_CIS_TOKEN).get(0);
+		}
+	}
+
+	@Override
+	protected void conveyExtraSecuritySettings(RemoteSecurityContext rc) throws RemoteException {
+		try {
+			if (helioToken != null) {
+				log.info("transfering HELIO CIS token: " + helioToken);
+				rc.setHelioToken(helioToken);
+			}
+		} finally {
+			helioToken = null;
+		}
 	}
 }

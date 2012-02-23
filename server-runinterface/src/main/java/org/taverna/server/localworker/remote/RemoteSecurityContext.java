@@ -26,4 +26,6 @@ public interface RemoteSecurityContext extends Remote {
 
 	void setUriToAliasMap(@NonNull HashMap<URI, String> uriToAliasMap)
 			throws RemoteException;
+
+	void setHelioToken(@NonNull String helioToken) throws RemoteException;
 }

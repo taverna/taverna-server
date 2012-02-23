@@ -19,6 +19,7 @@ import javax.annotation.PreDestroy;
 import org.apache.commons.logging.Log;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.springframework.beans.factory.annotation.Required;
+import org.springframework.beans.factory.annotation.Value;
 import org.taverna.server.master.utils.FilenameUtils;
 import org.taverna.server.master.utils.UsernamePrincipal;
 import org.taverna.server.master.utils.X500Utils;
@@ -42,6 +43,12 @@ public class SecurityContextFactory implements
 	transient FilenameUtils fileUtils;
 	transient X500Utils x500Utils;
 	private transient BouncyCastleProvider provider;
+
+	/**
+	 * Whether to support HELIO CIS tokens.
+	 */
+	@Value("${helio.cis.enableTokenPassing}")
+	boolean supportHelioToken;
 
 	private Log log() {
 		return getLog("Taverna.Server.LocalWorker.Security");

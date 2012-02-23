@@ -274,18 +274,24 @@ public abstract class SecurityContextDelegate implements TavernaSecurityContext 
 				log.info("transfering merged keystore with " + keyCount
 						+ " entries");
 				rc.setKeystore(keybytes);
-				rc.setPassword(password);
-
-				log.info("transfering serviceURL->alias map with "
-						+ uriToAliasMap.size() + " entries");
-				rc.setUriToAliasMap(uriToAliasMap);
 			} finally {
 				blankOut(trustbytes);
 				blankOut(keybytes);
 			}
+			rc.setPassword(password);
 		} finally {
 			blankOut(password);
 		}
+
+		log.info("transfering serviceURL->alias map with "
+				+ uriToAliasMap.size() + " entries");
+		rc.setUriToAliasMap(uriToAliasMap);
+
+		conveyExtraSecuritySettings(rc);
+	}
+
+	protected void conveyExtraSecuritySettings(RemoteSecurityContext remoteSecurityContext) throws IOException {
+		// Does nothing by default; overrideable
 	}
 
 	private static void blankOut(char[] ary) {
