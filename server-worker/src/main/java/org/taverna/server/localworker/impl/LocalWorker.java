@@ -17,6 +17,9 @@ import static org.apache.commons.io.FileUtils.forceDelete;
 import static org.apache.commons.io.FileUtils.forceMkdir;
 import static org.apache.commons.io.FileUtils.writeByteArrayToFile;
 import static org.apache.commons.io.FileUtils.writeLines;
+import static org.taverna.server.localworker.impl.SecurityConstants.KEYSTORE_FILE;
+import static org.taverna.server.localworker.impl.SecurityConstants.SECURITY_DIR_NAME;
+import static org.taverna.server.localworker.impl.SecurityConstants.TRUSTSTORE_FILE;
 import static org.taverna.server.localworker.impl.utils.FilenameVerifier.getValidatedFile;
 import static org.taverna.server.localworker.remote.RemoteStatus.Finished;
 import static org.taverna.server.localworker.remote.RemoteStatus.Initialized;
@@ -230,20 +233,6 @@ public class LocalWorker extends UnicastRemoteObject implements RemoteSingleRun 
 
 	/** The name of the default encoding for characters on this machine. */
 	public static final String SYSTEM_ENCODING = defaultCharset().name();
-	/**
-	 * The name of the directory (in the home directory) where security settings
-	 * will be written.
-	 */
-	public static final String SECURITY_DIR_NAME = ".taverna-server-security";
-	/** The name of the file that will be the created keystore. */
-	public static final String KEYSTORE_FILE = "t2keystore.jceks";
-	/** The name of the file that will be the created truststore. */
-	public static final String TRUSTSTORE_FILE = "t2truststore.jceks";
-	/**
-	 * The name of the file that contains the password to unlock the keystore
-	 * and truststore.
-	 */
-	public static final String PASSWORD_FILE = "password.txt";
 	// /**
 	// * The name of the file that contains the mapping from URIs to keystore
 	// * aliases.
@@ -258,7 +247,7 @@ public class LocalWorker extends UnicastRemoteObject implements RemoteSingleRun 
 	File contextDirectory;
 	char[] keystorePassword = new char[0];
 	FileCleaningTracker fileTracker = new FileCleaningTracker();
-	Map<String,String> environment = new HashMap<String,String>();
+	Map<String, String> environment = new HashMap<String, String>();
 
 	@SuppressWarnings("SE_INNER_CLASS")
 	class SecurityDelegate extends UnicastRemoteObject implements
@@ -266,7 +255,7 @@ public class LocalWorker extends UnicastRemoteObject implements RemoteSingleRun 
 		protected SecurityDelegate(String token) throws IOException {
 			super();
 			contextDirectory = new File(SECURITY_DIR, token);
-			System.out.println("security directory is " + contextDirectory);
+			out.println("security directory is " + contextDirectory);
 			if (DO_MKDIR) {
 				forceMkdir(contextDirectory);
 				if (!contextDirectory.setReadable(true, true)
@@ -294,7 +283,9 @@ public class LocalWorker extends UnicastRemoteObject implements RemoteSingleRun 
 		protected void write(String name, byte[] data) throws RemoteException,
 				ImplementationException {
 			try {
-				writeByteArrayToFile(new File(contextDirectory, name), data);
+				File f = new File(contextDirectory, name);
+				out.println("writing " + data.length + " bytes to " + f);
+				writeByteArrayToFile(f, data);
 			} catch (IOException e) {
 				throw new ImplementationException("problem writing " + name, e);
 			}
@@ -316,8 +307,9 @@ public class LocalWorker extends UnicastRemoteObject implements RemoteSingleRun 
 		protected void write(String name, Collection<String> data)
 				throws RemoteException, ImplementationException {
 			try {
-				writeLines(new File(contextDirectory, name), SYSTEM_ENCODING,
-						data);
+				File f = new File(contextDirectory, name);
+				out.println("writing " + data.size() + " lines to " + f);
+				writeLines(f, SYSTEM_ENCODING, data);
 			} catch (IOException e) {
 				throw new ImplementationException("problem writing " + name, e);
 			}
@@ -339,8 +331,9 @@ public class LocalWorker extends UnicastRemoteObject implements RemoteSingleRun 
 		protected void write(String name, char[] data) throws RemoteException,
 				ImplementationException {
 			try {
-				writeLines(new File(contextDirectory, name), SYSTEM_ENCODING,
-						asList(new String(data)));
+				File f = new File(contextDirectory, name);
+				out.println("writing " + data.length + " chars to " + f);
+				writeLines(f, SYSTEM_ENCODING, asList(new String(data)));
 			} catch (IOException e) {
 				throw new ImplementationException("problem writing " + name, e);
 			}
@@ -351,6 +344,8 @@ public class LocalWorker extends UnicastRemoteObject implements RemoteSingleRun 
 				ImplementationException {
 			if (status != Initialized)
 				throw new RemoteException("not initializing");
+			if (keystore == null)
+				throw new IllegalArgumentException("keystore may not be null");
 			write(KEYSTORE_FILE, keystore);
 		}
 
@@ -358,8 +353,9 @@ public class LocalWorker extends UnicastRemoteObject implements RemoteSingleRun 
 		public void setPassword(char[] password) throws RemoteException {
 			if (status != Initialized)
 				throw new RemoteException("not initializing");
+			if (password == null)
+				throw new IllegalArgumentException("password may not be null");
 			keystorePassword = password.clone();
-			// write(PASSWORD_FILE, password); // Written later
 		}
 
 		@Override
@@ -367,6 +363,8 @@ public class LocalWorker extends UnicastRemoteObject implements RemoteSingleRun 
 				ImplementationException {
 			if (status != Initialized)
 				throw new RemoteException("not initializing");
+			if (truststore == null)
+				throw new IllegalArgumentException("truststore may not be null");
 			write(TRUSTSTORE_FILE, truststore);
 		}
 
@@ -375,6 +373,8 @@ public class LocalWorker extends UnicastRemoteObject implements RemoteSingleRun 
 				throws RemoteException {
 			if (status != Initialized)
 				throw new RemoteException("not initializing");
+			if (uriToAliasMap == null)
+				return;
 			ArrayList<String> lines = new ArrayList<String>();
 			for (Entry<URI, String> site : uriToAliasMap.entrySet())
 				lines.add(site.getKey().toASCIIString() + " " + site.getValue());
@@ -382,7 +382,10 @@ public class LocalWorker extends UnicastRemoteObject implements RemoteSingleRun 
 		}
 
 		@Override
-		public void setHelioToken(String helioToken) {
+		public void setHelioToken(String helioToken) throws RemoteException {
+			if (status != Initialized)
+				throw new RemoteException("not initializing");
+			out.println("registering HELIO CIS token for export");
 			environment.put(HELIO_TOKEN_NAME, helioToken);
 		}
 	}
@@ -536,9 +539,6 @@ public class LocalWorker extends UnicastRemoteObject implements RemoteSingleRun 
 							inputBaclavaFile, inputRealFiles, inputValues,
 							outputBaclavaFile, contextDirectory,
 							keystorePassword, environment);
-					for (int i = 0; keystorePassword != null
-							&& i < keystorePassword.length; i++)
-						keystorePassword[i] = ' ';
 					keystorePassword = null;
 				} catch (Exception e) {
 					throw new ImplementationException(

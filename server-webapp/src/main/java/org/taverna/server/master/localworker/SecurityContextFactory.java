@@ -50,6 +50,12 @@ public class SecurityContextFactory implements
 	@Value("${helio.cis.enableTokenPassing}")
 	boolean supportHelioToken;
 
+	/**
+	 * Whether to log the details of security (passwords, etc).
+	 */
+	@Value("${log.security.details}")
+	boolean logSecurityDetails;
+
 	private Log log() {
 		return getLog("Taverna.Server.LocalWorker.Security");
 	}

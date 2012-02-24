@@ -44,11 +44,11 @@ public interface Worker {
 	 *            or <tt>null</tt> to have it written into the <tt>out</tt>
 	 *            subdirectory.
 	 * @param contextDirectory
-	 *            The directory containing the keystore and truststore. May be
-	 *            <tt>null</tt> if no security information is provided.
+	 *            The directory containing the keystore and truststore. <i>Must
+	 *            not be <tt>null</tt>.</i>
 	 * @param keystorePassword
-	 *            The password to the keystore and truststore. May be
-	 *            <tt>null</tt> if no security information is provided.
+	 *            The password to the keystore and truststore. <i>Must not be
+	 *            <tt>null</tt>.</i>
 	 * @param environment
 	 *            Any environment variables that need to be added to the
 	 *            invokation.
