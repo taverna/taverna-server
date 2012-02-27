@@ -6,15 +6,12 @@
 		<version>2.3-SNAPSHOT</version>
 		<relativePath>..</relativePath>
 	</parent>
-	<groupId>uk.org.taverna.server</groupId>
 	<artifactId>server-usagerecord</artifactId>
 	<name>Usage Record Support</name>
-	<version>2.3-SNAPSHOT</version>
 	<dependencies>
 		<dependency>
 			<groupId>junit</groupId>
 			<artifactId>junit</artifactId>
-			<version>4.9</version>
 			<type>jar</type>
 			<scope>test</scope>
 		</dependency>

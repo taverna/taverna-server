@@ -1,9 +1,7 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
 	<modelVersion>4.0.0</modelVersion>
-	<groupId>uk.org.taverna.server</groupId>
 	<artifactId>server-runinterface</artifactId>
 	<name>RMI interface to Taverna Workflow Runs</name>
-	<version>2.3-SNAPSHOT</version>
 	<description>This is the implementation of the RMI interface between the workflow run factory and the web-app service front-end.</description>
 	<parent>
 		<groupId>uk.org.taverna.server</groupId>
