@@ -5,6 +5,7 @@
  */
 package org.taverna.server.master.localworker;
 
+import static java.lang.String.format;
 import static javax.xml.ws.handler.MessageContext.HTTP_REQUEST_HEADERS;
 
 import java.io.ByteArrayInputStream;
@@ -47,6 +48,9 @@ class SecurityContextDelegateImpl extends SecurityContextDelegate {
 	private static final String USERNAME_PASSWORD_KEY_ALGORITHM = "DUMMY";
 	/** What passwords are encoded as. */
 	private static final Charset UTF8 = Charset.forName("UTF-8");
+	// TODO Use agreed header name for HELIO CIS token
+	/** The name of the HTTP header holding the CIS token. */
+	private static final String HELIO_CIS_TOKEN = "X-Helio-CIS";
 
 	private X500Utils x500Utils;
 	private transient String helioToken;
@@ -71,9 +75,7 @@ class SecurityContextDelegateImpl extends SecurityContextDelegate {
 	public void validateCredential(Credential c)
 			throws InvalidCredentialException {
 		try {
-			if (c instanceof Credential.CaGridProxy)
-				validateCaGridPoxyCredential((Credential.CaGridProxy) c);
-			else if (c instanceof Credential.Password)
+			if  (c instanceof Credential.Password)
 				validatePasswordCredential((Credential.Password) c);
 			else if (c instanceof Credential.KeyPair)
 				validateKeyCredential((Credential.KeyPair) c);
@@ -91,8 +93,6 @@ class SecurityContextDelegateImpl extends SecurityContextDelegate {
 		try {
 			if (c instanceof Credential.Password)
 				addUserPassToKeystore((Credential.Password) c);
-			else if (c instanceof Credential.CaGridProxy)
-				addCaGridPoxyToKeystore((Credential.CaGridProxy) c);
 			else if (c instanceof Credential.KeyPair)
 				addKeypairToKeystore((Credential.KeyPair) c);
 			else
@@ -137,14 +137,15 @@ class SecurityContextDelegateImpl extends SecurityContextDelegate {
 	/**
 	 * Adds a username/password credential pair to the current keystore.
 	 * 
-	 * @param c
+	 * @param userpassCredential
 	 *            The username and password.
 	 * @throws KeyStoreException
 	 */
-	protected void addUserPassToKeystore(Credential.Password c)
+	protected void addUserPassToKeystore(Credential.Password userpassCredential)
 			throws KeyStoreException {
-		String alias = "password#" + c.serviceURI;
-		addKeypairToKeystore(alias, c);
+		String alias = format("password#%s",
+				userpassCredential.serviceURI.toASCIIString());
+		addKeypairToKeystore(alias, userpassCredential);
 	}
 
 	// -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
@@ -232,38 +233,14 @@ class SecurityContextDelegateImpl extends SecurityContextDelegate {
 	protected void addKeypairToKeystore(Credential.KeyPair c)
 			throws KeyStoreException {
 		X509Certificate subjectCert = (X509Certificate) c.loadedTrustChain[0];
-		String alias = "keypair#"
-				+ getPrincipalName(subjectCert.getSubjectX500Principal()) + "#"
-				+ getPrincipalName(subjectCert.getIssuerX500Principal()) + "#"
-				+ x500Utils.getSerial(subjectCert);
+		String alias = format("keypair#%s#%s#%s",
+				getPrincipalName(subjectCert.getSubjectX500Principal()),
+				getPrincipalName(subjectCert.getIssuerX500Principal()),
+				x500Utils.getSerial(subjectCert));
 		addKeypairToKeystore(alias, c);
 	}
 
 	// -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-
-	private void validateCaGridPoxyCredential(Credential.CaGridProxy c)
-			throws InvalidCredentialException, UnrecoverableKeyException,
-			KeyStoreException, NoSuchAlgorithmException, CertificateException,
-			IOException {
-		// Proxies are just normal credentials at this point
-		validateKeyCredential(c);
-
-		if (c.authenticationService.toString().isEmpty())
-			throw new InvalidCredentialException(
-					"missing authenticationService");
-		if (c.dorianService.toString().length() == 0)
-			throw new InvalidCredentialException("missing dorianService");
-	}
-
-	private void addCaGridPoxyToKeystore(Credential.CaGridProxy c)
-			throws KeyStoreException {
-		String alias = "cagridproxy#" + c.authenticationService + " "
-				+ c.dorianService;
-		addKeypairToKeystore(alias, c);
-	}
-
-	// FIXME Use agreed header name for HELIO CIS token
-	private static final String HELIO_CIS_TOKEN = "X-Helio-CIS";
 
 	@Override
 	public void initializeSecurityFromSOAPContext(MessageContext context) {
@@ -271,25 +248,25 @@ class SecurityContextDelegateImpl extends SecurityContextDelegate {
 		@SuppressWarnings("unchecked")
 		Map<String, List<String>> headers = (Map<String, List<String>>) context
 				.get(HTTP_REQUEST_HEADERS);
-		if (factory.supportHelioToken && headers.containsKey(HELIO_CIS_TOKEN)) {
+		if (factory.supportHelioToken && headers.containsKey(HELIO_CIS_TOKEN))
 			helioToken = headers.get(HELIO_CIS_TOKEN).get(0);
-		}
 	}
 
 	@Override
 	public void initializeSecurityFromRESTContext(HttpHeaders context) {
 		// does nothing
 		MultivaluedMap<String, String> headers = context.getRequestHeaders();
-		if (factory.supportHelioToken && headers.containsKey(HELIO_CIS_TOKEN)) {
+		if (factory.supportHelioToken && headers.containsKey(HELIO_CIS_TOKEN))
 			helioToken = headers.get(HELIO_CIS_TOKEN).get(0);
-		}
 	}
 
 	@Override
-	protected void conveyExtraSecuritySettings(RemoteSecurityContext rc) throws RemoteException {
+	protected void conveyExtraSecuritySettings(RemoteSecurityContext rc)
+			throws RemoteException {
 		try {
-			if (helioToken != null) {
-				log.info("transfering HELIO CIS token: " + helioToken);
+			if (factory.supportHelioToken && helioToken != null) {
+				if (factory.logSecurityDetails)
+					log.info("transfering HELIO CIS token: " + helioToken);
 				rc.setHelioToken(helioToken);
 			}
 		} finally {

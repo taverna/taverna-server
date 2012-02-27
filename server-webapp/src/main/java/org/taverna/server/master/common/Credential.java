@@ -29,8 +29,7 @@ import edu.umd.cs.findbugs.annotations.NonNull;
  * @author Donal Fellows
  */
 @XmlType(name = "CredentialDescriptor")
-@XmlSeeAlso({ Credential.KeyPair.class, Credential.Password.class,
-		Credential.CaGridProxy.class })
+@XmlSeeAlso({ Credential.KeyPair.class, Credential.Password.class })
 public abstract class Credential implements Serializable {
 	/** The location of this descriptor in the REST world. */
 	@XmlAttribute(namespace = XLINK)
@@ -117,20 +116,6 @@ public abstract class Credential implements Serializable {
 		public String username;
 		@XmlElement(required = true)
 		public String password;
-	}
-
-	/**
-	 * Special credential type for proxy certificates as understood by CAGrid.
-	 */
-	@XmlRootElement(name = "cagridproxy")
-	@XmlType(name = "CaGridProxyCredential")
-	public static class CaGridProxy extends KeyPair {
-		@XmlElement(required = true)
-		@XmlSchemaType(name = "anyURI")
-		public URI authenticationService;
-		@XmlElement(required = true)
-		@XmlSchemaType(name = "anyURI")
-		public URI dorianService;
 	}
 
 	/**

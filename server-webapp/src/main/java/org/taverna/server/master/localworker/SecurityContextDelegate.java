@@ -53,6 +53,19 @@ import org.taverna.server.master.utils.UsernamePrincipal;
  * @author Donal Fellows
  */
 public abstract class SecurityContextDelegate implements TavernaSecurityContext {
+	/**
+	 * What fields of a certificate we look at when understanding who it is
+	 * talking about, in the order that we look.
+	 */
+	private static final String[] DEFAULT_CERT_FIELD_NAMES = { "CN",
+			"COMMONNAME", "COMMON NAME", "COMMON_NAME", "OU",
+			"ORGANIZATIONALUNITNAME", "ORGANIZATIONAL UNIT NAME", "O",
+			"ORGANIZATIONNAME", "ORGANIZATION NAME" };
+	/** The type of certificates that are processed if we don't say otherwise. */
+	private static final String DEFAULT_CERTIFICATE_TYPE = "X.509";
+	/** Max size of credential file, in kiB. */
+	private static final int FILE_SIZE_LIMIT = 20;
+
 	Log log = LogFactory.getLog("Taverna.Server.LocalWorker");
 	private final UsernamePrincipal owner;
 	private final List<Credential> credentials = new ArrayList<Credential>();
@@ -60,20 +73,13 @@ public abstract class SecurityContextDelegate implements TavernaSecurityContext 
 	private final RemoteRunDelegate run;
 	private final Object lock = new Object();
 	final SecurityContextFactory factory;
-	private static final String[] DEFAULT_CERT_FIELD_NAMES = { "CN",
-			"COMMONNAME", "COMMON NAME", "COMMON_NAME", "OU",
-			"ORGANIZATIONALUNITNAME", "ORGANIZATIONAL UNIT NAME", "O",
-			"ORGANIZATIONNAME", "ORGANIZATION NAME" };
-
-	protected String getPrincipalName(X500Principal principal) {
-		return factory.x500Utils.getName(principal, DEFAULT_CERT_FIELD_NAMES);
-	}
 
 	private transient Keystore keystore;
 	private transient HashMap<URI, String> uriToAliasMap;
 
-	/** The type of certificates that are processed if we don't say otherwise. */
-	private static final String DEFAULT_CERTIFICATE_TYPE = "X.509";
+	protected String getPrincipalName(X500Principal principal) {
+		return factory.x500Utils.getName(principal, DEFAULT_CERT_FIELD_NAMES);
+	}
 
 	/**
 	 * Initialise the context delegate.
@@ -109,6 +115,13 @@ public abstract class SecurityContextDelegate implements TavernaSecurityContext 
 		}
 	}
 
+	/**
+	 * Cause the current state to be flushed to the database.
+	 */
+	protected final void flushToDB() {
+		factory.db.flushToDisk(run);
+	}
+
 	@Override
 	public void addCredential(Credential toAdd) {
 		synchronized (lock) {
@@ -117,7 +130,7 @@ public abstract class SecurityContextDelegate implements TavernaSecurityContext 
 				credentials.set(idx, toAdd);
 			else
 				credentials.add(toAdd);
-			factory.db.flushToDisk(run);
+			flushToDB();
 		}
 	}
 
@@ -125,7 +138,7 @@ public abstract class SecurityContextDelegate implements TavernaSecurityContext 
 	public void deleteCredential(Credential toDelete) {
 		synchronized (lock) {
 			credentials.remove(toDelete);
-			factory.db.flushToDisk(run);
+			flushToDB();
 		}
 	}
 
@@ -144,7 +157,7 @@ public abstract class SecurityContextDelegate implements TavernaSecurityContext 
 				trusted.set(idx, toAdd);
 			else
 				trusted.add(toAdd);
-			factory.db.flushToDisk(run);
+			flushToDB();
 		}
 	}
 
@@ -152,7 +165,7 @@ public abstract class SecurityContextDelegate implements TavernaSecurityContext 
 	public void deleteTrusted(Trust toDelete) {
 		synchronized (lock) {
 			trusted.remove(toDelete);
-			factory.db.flushToDisk(run);
+			flushToDB();
 		}
 	}
 
@@ -256,7 +269,7 @@ public abstract class SecurityContextDelegate implements TavernaSecurityContext 
 					this.keystore = null;
 					credentials.clear();
 					trusted.clear();
-					factory.db.flushToDisk(run);
+					flushToDB();
 				}
 			}
 
@@ -275,45 +288,43 @@ public abstract class SecurityContextDelegate implements TavernaSecurityContext 
 						+ " entries");
 				rc.setKeystore(keybytes);
 			} finally {
-				blankOut(trustbytes);
-				blankOut(keybytes);
+				if (trustbytes != null)
+					fill(trustbytes, (byte) 0);
+				if (keybytes != null)
+					fill(keybytes, (byte) 0);
 			}
 			rc.setPassword(password);
-		} finally {
-			blankOut(password);
-		}
 
-		if (uriToAliasMap != null)
 			log.info("transferring serviceURL->alias map with "
 					+ uriToAliasMap.size() + " entries");
-		else
-			log.info("transferring null serviceURL->alias map");
-		rc.setUriToAliasMap(uriToAliasMap);
+			rc.setUriToAliasMap(uriToAliasMap);
+		} finally {
+			if (password != null)
+				fill(password, ' ');
+		}
 
-		conveyExtraSecuritySettings(rc);
+		synchronized (lock) {
+			conveyExtraSecuritySettings(rc);
+		}
 	}
 
+	/**
+	 * Hook that allows additional information to be conveyed to the remote run.
+	 * 
+	 * @param remoteSecurityContext
+	 *            The remote resource that information would be passed to.
+	 * @throws IOException
+	 *             If anything goes wrong with the communication.
+	 */
 	protected void conveyExtraSecuritySettings(
 			RemoteSecurityContext remoteSecurityContext) throws IOException {
 		// Does nothing by default; overrideable
 	}
 
-	private static void blankOut(char[] ary) {
-		if (ary == null)
-			return;
-		fill(ary, ' ');
-	}
-
-	private static void blankOut(byte[] ary) {
-		if (ary == null)
-			return;
-		fill(ary, (byte) 0);
-	}
-
 	/**
 	 * @return A new password with a reasonable level of randomness.
 	 */
-	protected char[] generateNewPassword() {
+	protected final char[] generateNewPassword() {
 		return randomUUID().toString().toCharArray();
 	}
 
@@ -345,7 +356,7 @@ public abstract class SecurityContextDelegate implements TavernaSecurityContext 
 			throws KeyStoreException;
 
 	/**
-	 * Read a file up to 20kB in size.
+	 * Read a file up to {@value #FILE_SIZE_LIMIT}kB in size.
 	 * 
 	 * @param name
 	 *            The path name of the file, relative to the context run's
@@ -354,12 +365,13 @@ public abstract class SecurityContextDelegate implements TavernaSecurityContext 
 	 * @throws InvalidCredentialException
 	 *             If anything goes wrong.
 	 */
-	InputStream contents(String name) throws InvalidCredentialException {
+	final InputStream contents(String name) throws InvalidCredentialException {
 		try {
 			File f = (File) factory.fileUtils.getDirEntry(run, name);
 			long size = f.getSize();
-			if (size > 20 * 1024)
-				throw new InvalidCredentialException("20kB limit hit");
+			if (size > FILE_SIZE_LIMIT * 1024)
+				throw new InvalidCredentialException(FILE_SIZE_LIMIT
+						+ "kB limit hit");
 			return new ByteArrayInputStream(f.getContents(0, (int) size));
 		} catch (NoDirectoryEntryException e) {
 			throw new InvalidCredentialException(e);

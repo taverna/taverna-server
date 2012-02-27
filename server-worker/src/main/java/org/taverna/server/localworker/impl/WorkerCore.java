@@ -247,14 +247,12 @@ public class WorkerCore extends UnicastRemoteObject implements Worker,
 		if (securityDir != null) {
 			pb.command().add(CREDENTIAL_MANAGER_DIRECTORY);
 			pb.command().add(securityDir.getAbsolutePath());
-			for (File file : securityDir.listFiles())
-				out.println("security dir contents: " + file);
+			out.println("security dir location: " + securityDir);
 		}
 		if (password != null) {
 			pb.command().add(CREDENTIAL_MANAGER_PASSWORD);
-			if (password.length > 0)
-				out.println("password \"" + new String(password)
-						+ "\" will be written to subprocess stdin");
+			out.println("password of length " + password.length
+					+ " will be written to subprocess stdin");
 		}
 
 		// Add arguments denoting inputs

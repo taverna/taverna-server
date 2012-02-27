@@ -67,6 +67,8 @@ public class LocalWorker extends UnicastRemoteObject implements RemoteSingleRun 
 	// FIXME Use agreed environment name for HELIO CIS token
 	private static final String HELIO_TOKEN_NAME = "HELIO_CIS_TOKEN";
 
+	static boolean DO_MKDIR;
+
 	private final String executeWorkflowCommand;
 	private final String workflow;
 	private File base;
@@ -91,7 +93,7 @@ public class LocalWorker extends UnicastRemoteObject implements RemoteSingleRun 
 	Map<String, String> inputValues;
 	private final Worker core;
 	private final String masterToken;
-	private Thread shutdownHook;
+	Thread shutdownHook;
 
 	/**
 	 * Subdirectories of the working directory to create by default.
@@ -152,6 +154,7 @@ public class LocalWorker extends UnicastRemoteObject implements RemoteSingleRun 
 			@Override
 			public void run() {
 				try {
+					shutdownHook = null;
 					destroy();
 				} catch (ImplementationException e) {
 				} catch (RemoteException e) {
@@ -242,7 +245,6 @@ public class LocalWorker extends UnicastRemoteObject implements RemoteSingleRun 
 	/** Handle to the directory containing the security info. */
 	static final File SECURITY_DIR = new File(
 			new File(getProperty("user.home")), SECURITY_DIR_NAME);
-	static boolean DO_MKDIR = true;
 
 	File contextDirectory;
 	char[] keystorePassword = new char[0];
@@ -252,21 +254,25 @@ public class LocalWorker extends UnicastRemoteObject implements RemoteSingleRun 
 	@SuppressWarnings("SE_INNER_CLASS")
 	class SecurityDelegate extends UnicastRemoteObject implements
 			RemoteSecurityContext {
+		private void setPrivatePerms(File dir) {
+			if (!dir.setReadable(false, false) || !dir.setReadable(true, true)
+					|| !dir.setExecutable(false, false)
+					|| !dir.setExecutable(true, true)
+					|| !dir.setWritable(false, false)
+					|| !dir.setWritable(true, true)) {
+				out.println("warning: "
+						+ "failed to set permissions on security context directory");
+			}
+		}
+
 		protected SecurityDelegate(String token) throws IOException {
 			super();
 			contextDirectory = new File(SECURITY_DIR, token);
-			out.println("security directory is " + contextDirectory);
 			if (DO_MKDIR) {
 				forceMkdir(contextDirectory);
-				if (!contextDirectory.setReadable(true, true)
-						|| !contextDirectory.setExecutable(true, true)
-						|| !contextDirectory.setWritable(true, true)) {
-					System.err
-							.println("warning: "
-									+ "failed to set permissions on security context directory");
-				}
-				fileTracker.track(contextDirectory, LocalWorker.this);
+				setPrivatePerms(contextDirectory);
 			}
+			fileTracker.track(contextDirectory, LocalWorker.this);
 		}
 
 		/**
@@ -284,7 +290,6 @@ public class LocalWorker extends UnicastRemoteObject implements RemoteSingleRun 
 				ImplementationException {
 			try {
 				File f = new File(contextDirectory, name);
-				out.println("writing " + data.length + " bytes to " + f);
 				writeByteArrayToFile(f, data);
 			} catch (IOException e) {
 				throw new ImplementationException("problem writing " + name, e);
@@ -308,7 +313,6 @@ public class LocalWorker extends UnicastRemoteObject implements RemoteSingleRun 
 				throws RemoteException, ImplementationException {
 			try {
 				File f = new File(contextDirectory, name);
-				out.println("writing " + data.size() + " lines to " + f);
 				writeLines(f, SYSTEM_ENCODING, data);
 			} catch (IOException e) {
 				throw new ImplementationException("problem writing " + name, e);
@@ -332,7 +336,6 @@ public class LocalWorker extends UnicastRemoteObject implements RemoteSingleRun 
 				ImplementationException {
 			try {
 				File f = new File(contextDirectory, name);
-				out.println("writing " + data.length + " chars to " + f);
 				writeLines(f, SYSTEM_ENCODING, asList(new String(data)));
 			} catch (IOException e) {
 				throw new ImplementationException("problem writing " + name, e);

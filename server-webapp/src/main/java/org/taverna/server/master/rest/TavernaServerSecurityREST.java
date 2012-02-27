@@ -161,16 +161,6 @@ public interface TavernaServerSecurityREST {
 			@NonNull Credential.KeyPair c, @NonNull @Context UriInfo ui)
 			throws InvalidCredentialException, BadStateChangeException;
 
-	@PUT
-	@Path("credentials/{id}")
-	@Consumes({ "application/xml", "application/json" })
-	@Produces({ "application/xml", "application/json" })
-	@Description("Updates a particular credential.")
-	@NonNull
-	Credential setParticularCredential(@NonNull @PathParam("id") String id,
-			@NonNull Credential.CaGridProxy c, @NonNull @Context UriInfo ui)
-			throws InvalidCredentialException, BadStateChangeException;
-
 	/**
 	 * Adds a new credential.
 	 * 
@@ -206,14 +196,6 @@ public interface TavernaServerSecurityREST {
 	@Description("Creates a new credential.")
 	@NonNull
 	Response addCredential(@NonNull Credential.KeyPair c, @NonNull @Context UriInfo ui)
-			throws InvalidCredentialException, BadStateChangeException;
-
-	@POST
-	@Path("credentials")
-	@Consumes({ "application/xml", "application/json" })
-	@Description("Creates a new credential.")
-	@NonNull
-	Response addCredential(@NonNull Credential.CaGridProxy c, @NonNull @Context UriInfo ui)
 			throws InvalidCredentialException, BadStateChangeException;
 
 	/**
