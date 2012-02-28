@@ -63,6 +63,7 @@ public abstract class Credential implements Serializable {
 			return false;
 		return equals((Credential) o);
 	}
+
 	protected boolean equals(@NonNull Credential c) {
 		return id.equals(c.id);
 	}
@@ -102,6 +103,11 @@ public abstract class Credential implements Serializable {
 		 */
 		@XmlElement
 		public byte[] credentialBytes;
+
+		@Override
+		public String toString() {
+			return "keypair(id=" + id + ")";
+		}
 	}
 
 	/**
@@ -116,6 +122,11 @@ public abstract class Credential implements Serializable {
 		public String username;
 		@XmlElement(required = true)
 		public String password;
+
+		@Override
+		public String toString() {
+			return "userpass(id=" + id + ")";
+		}
 	}
 
 	/**
@@ -127,6 +138,11 @@ public abstract class Credential implements Serializable {
 	public static class Dummy extends Credential {
 		public Dummy(String id) {
 			this.id = id;
+		}
+
+		@Override
+		public String toString() {
+			return "dummy(id=" + id + ")";
 		}
 	}
 }
