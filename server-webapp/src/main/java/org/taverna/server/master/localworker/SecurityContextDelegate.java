@@ -77,10 +77,6 @@ public abstract class SecurityContextDelegate implements TavernaSecurityContext 
 	private transient Keystore keystore;
 	private transient HashMap<URI, String> uriToAliasMap;
 
-	protected String getPrincipalName(X500Principal principal) {
-		return factory.x500Utils.getName(principal, DEFAULT_CERT_FIELD_NAMES);
-	}
-
 	/**
 	 * Initialise the context delegate.
 	 * 
@@ -113,6 +109,17 @@ public abstract class SecurityContextDelegate implements TavernaSecurityContext 
 		synchronized (lock) {
 			return credentials.toArray(new Credential[credentials.size()]);
 		}
+	}
+
+	/**
+	 * Get the human-readable name of a principal.
+	 * 
+	 * @param principal
+	 *            The principal being decoded.
+	 * @return A name.
+	 */
+	protected final String getPrincipalName(X500Principal principal) {
+		return factory.x500Utils.getName(principal, DEFAULT_CERT_FIELD_NAMES);
 	}
 
 	/**
@@ -187,14 +194,21 @@ public abstract class SecurityContextDelegate implements TavernaSecurityContext 
 			contentsAsStream = contents(t.certificateFile);
 			t.certificateBytes = null;
 		}
+		t.serverName = null;
 		if (t.fileType == null || t.fileType.trim().isEmpty())
 			t.fileType = DEFAULT_CERTIFICATE_TYPE;
 		t.fileType = t.fileType.trim();
 		try {
 			t.loadedCertificates = CertificateFactory.getInstance(t.fileType)
 					.generateCertificates(contentsAsStream);
+			t.serverName = new ArrayList<String>(t.loadedCertificates.size());
+			for (Certificate c : t.loadedCertificates)
+				t.serverName.add(getPrincipalName(((X509Certificate) c)
+						.getSubjectX500Principal()));
 		} catch (CertificateException e) {
 			throw new InvalidCredentialException(e);
+		} catch (ClassCastException e) {
+			// Do nothing; truncates the list of server names
 		}
 	}
 
