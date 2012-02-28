@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011 The University of Manchester
+ * Copyright (C) 2011-2012 The University of Manchester
  * 
  * See the file "LICENSE.txt" for license terms.
  */
