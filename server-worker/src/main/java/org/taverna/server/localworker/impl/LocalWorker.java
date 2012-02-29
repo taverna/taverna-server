@@ -17,6 +17,7 @@ import static org.apache.commons.io.FileUtils.forceDelete;
 import static org.apache.commons.io.FileUtils.forceMkdir;
 import static org.apache.commons.io.FileUtils.writeByteArrayToFile;
 import static org.apache.commons.io.FileUtils.writeLines;
+import static org.taverna.server.localworker.impl.SecurityConstants.HELIO_TOKEN_NAME;
 import static org.taverna.server.localworker.impl.SecurityConstants.KEYSTORE_FILE;
 import static org.taverna.server.localworker.impl.SecurityConstants.SECURITY_DIR_NAME;
 import static org.taverna.server.localworker.impl.SecurityConstants.TRUSTSTORE_FILE;
@@ -39,7 +40,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import org.apache.commons.io.FileCleaningTracker;
 import org.taverna.server.localworker.remote.IllegalStateTransitionException;
 import org.taverna.server.localworker.remote.ImplementationException;
 import org.taverna.server.localworker.remote.RemoteDirectory;
@@ -64,15 +64,50 @@ import edu.umd.cs.findbugs.annotations.SuppressWarnings;
  */
 @SuppressWarnings({ "SE_BAD_FIELD", "SE_NO_SERIALVERSIONID" })
 public class LocalWorker extends UnicastRemoteObject implements RemoteSingleRun {
-	// FIXME Use agreed environment name for HELIO CIS token
-	private static final String HELIO_TOKEN_NAME = "HELIO_CIS_TOKEN";
+	// ----------------------- CONSTANTS -----------------------
 
-	static boolean DO_MKDIR;
+	/**
+	 * Subdirectories of the working directory to create by default.
+	 */
+	private static final String[] dirstomake = { "conf", "externaltool", "lib",
+			"logs", "plugins", "repository", "t2-database", "var" };
 
+	/** The name of the default encoding for characters on this machine. */
+	public static final String SYSTEM_ENCODING = defaultCharset().name();
+
+	/** Handle to the directory containing the security info. */
+	static final File SECURITY_DIR = new File(
+			new File(getProperty("user.home")), SECURITY_DIR_NAME);
+
+	// ----------------------- VARIABLES -----------------------
+
+	/**
+	 * Magic flag used to turn off problematic code when testing inside CI
+	 * environment.
+	 */
+	static boolean DO_MKDIR = true;
+
+	/** What to use to run a workflow engine. */
 	private final String executeWorkflowCommand;
+	/** What workflow to run. */
 	private final String workflow;
-	private File base;
+	/** The remote access object for the working directory. */
 	private final DirectoryDelegate baseDir;
+	/** What inputs to pass as files. */
+	final Map<String, String> inputFiles;
+	/** What inputs to pass as files (as file refs). */
+	final Map<String, File> inputRealFiles;
+	/** What inputs to pass as direct values. */
+	final Map<String, String> inputValues;
+	/** The interface to the workflow engine subprocess. */
+	private final Worker core;
+	/** Our descriptor token (UUID). */
+	private final String masterToken;
+	/**
+	 * The root working directory for a workflow run, or <tt>null</tt> if it has
+	 * been deleted.
+	 */
+	private File base;
 	/**
 	 * When did this workflow start running, or <tt>null</tt> for
 	 * "never/not yet".
@@ -83,23 +118,42 @@ public class LocalWorker extends UnicastRemoteObject implements RemoteSingleRun 
 	 * "never/not yet".
 	 */
 	private Date finish;
+	/** The cached status of the workflow run. */
 	RemoteStatus status;
-	String inputBaclava;
-	String outputBaclava;
-	private File inputBaclavaFile;
-	private File outputBaclavaFile;
-	Map<String, String> inputFiles;
-	Map<String, File> inputRealFiles;
-	Map<String, String> inputValues;
-	private final Worker core;
-	private final String masterToken;
-	Thread shutdownHook;
-
 	/**
-	 * Subdirectories of the working directory to create by default.
+	 * The name of the input Baclava document, or <tt>null</tt> to not do it
+	 * that way.
 	 */
-	private static final String[] dirstomake = { "conf", "externaltool", "lib",
-			"logs", "plugins", "repository", "t2-database", "var" };
+	String inputBaclava;
+	/**
+	 * The name of the output Baclava document, or <tt>null</tt> to not do it
+	 * that way.
+	 */
+	String outputBaclava;
+	/**
+	 * The file containing the input Baclava document, or <tt>null</tt> to not
+	 * do it that way.
+	 */
+	private File inputBaclavaFile;
+	/**
+	 * The file containing the output Baclava document, or <tt>null</tt> to not
+	 * do it that way.
+	 */
+	private File outputBaclavaFile;
+	/**
+	 * Registered shutdown hook so that we clean up when this process is killed
+	 * off, or <tt>null</tt> if that is no longer necessary.
+	 */
+	Thread shutdownHook;
+	/** Location for security information to be written to. */
+	File securityDirectory;
+	/** Password to use to encrypt security information. */
+	char[] keystorePassword = new char[] { 'c', 'h', 'a', 'n', 'g', 'e', 'm',
+			'e' };
+	/** Additional server-specified environment settings. */
+	Map<String, String> environment = new HashMap<String, String>();
+
+	// ----------------------- METHODS -----------------------
 
 	/**
 	 * @param executeWorkflowCommand
@@ -198,6 +252,17 @@ public class LocalWorker extends UnicastRemoteObject implements RemoteSingleRun 
 		} finally {
 			base = null;
 		}
+		try {
+			if (securityDirectory != null)
+				forceDelete(securityDirectory);
+		} catch (IOException e) {
+			out.println("problem deleting security directory");
+			e.printStackTrace(out);
+			throw new ImplementationException(
+					"problem deleting security directory", e);
+		} finally {
+			securityDirectory = null;
+		}
 	}
 
 	@Override
@@ -234,23 +299,6 @@ public class LocalWorker extends UnicastRemoteObject implements RemoteSingleRun 
 		return outputBaclava;
 	}
 
-	/** The name of the default encoding for characters on this machine. */
-	public static final String SYSTEM_ENCODING = defaultCharset().name();
-	// /**
-	// * The name of the file that contains the mapping from URIs to keystore
-	// * aliases.
-	// */
-	// public static final String URI_ALIAS_MAP = "urlmap.txt";
-
-	/** Handle to the directory containing the security info. */
-	static final File SECURITY_DIR = new File(
-			new File(getProperty("user.home")), SECURITY_DIR_NAME);
-
-	File contextDirectory;
-	char[] keystorePassword = new char[0];
-	FileCleaningTracker fileTracker = new FileCleaningTracker();
-	Map<String, String> environment = new HashMap<String, String>();
-
 	@SuppressWarnings("SE_INNER_CLASS")
 	class SecurityDelegate extends UnicastRemoteObject implements
 			RemoteSecurityContext {
@@ -267,12 +315,11 @@ public class LocalWorker extends UnicastRemoteObject implements RemoteSingleRun 
 
 		protected SecurityDelegate(String token) throws IOException {
 			super();
-			contextDirectory = new File(SECURITY_DIR, token);
+			securityDirectory = new File(SECURITY_DIR, token);
 			if (DO_MKDIR) {
-				forceMkdir(contextDirectory);
-				setPrivatePerms(contextDirectory);
+				forceMkdir(securityDirectory);
+				setPrivatePerms(securityDirectory);
 			}
-			fileTracker.track(contextDirectory, LocalWorker.this);
 		}
 
 		/**
@@ -289,7 +336,7 @@ public class LocalWorker extends UnicastRemoteObject implements RemoteSingleRun 
 		protected void write(String name, byte[] data) throws RemoteException,
 				ImplementationException {
 			try {
-				File f = new File(contextDirectory, name);
+				File f = new File(securityDirectory, name);
 				writeByteArrayToFile(f, data);
 			} catch (IOException e) {
 				throw new ImplementationException("problem writing " + name, e);
@@ -312,7 +359,7 @@ public class LocalWorker extends UnicastRemoteObject implements RemoteSingleRun 
 		protected void write(String name, Collection<String> data)
 				throws RemoteException, ImplementationException {
 			try {
-				File f = new File(contextDirectory, name);
+				File f = new File(securityDirectory, name);
 				writeLines(f, SYSTEM_ENCODING, data);
 			} catch (IOException e) {
 				throw new ImplementationException("problem writing " + name, e);
@@ -335,7 +382,7 @@ public class LocalWorker extends UnicastRemoteObject implements RemoteSingleRun 
 		protected void write(String name, char[] data) throws RemoteException,
 				ImplementationException {
 			try {
-				File f = new File(contextDirectory, name);
+				File f = new File(securityDirectory, name);
 				writeLines(f, SYSTEM_ENCODING, asList(new String(data)));
 			} catch (IOException e) {
 				throw new ImplementationException("problem writing " + name, e);
@@ -540,7 +587,7 @@ public class LocalWorker extends UnicastRemoteObject implements RemoteSingleRun 
 					start = new Date();
 					core.initWorker(executeWorkflowCommand, workflow, base,
 							inputBaclavaFile, inputRealFiles, inputValues,
-							outputBaclavaFile, contextDirectory,
+							outputBaclavaFile, securityDirectory,
 							keystorePassword, environment);
 					keystorePassword = null;
 				} catch (Exception e) {
