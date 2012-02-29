@@ -315,8 +315,8 @@ public class LocalWorker extends UnicastRemoteObject implements RemoteSingleRun 
 
 		protected SecurityDelegate(String token) throws IOException {
 			super();
-			securityDirectory = new File(SECURITY_DIR, token);
 			if (DO_MKDIR) {
+				securityDirectory = new File(SECURITY_DIR, token);
 				forceMkdir(securityDirectory);
 				setPrivatePerms(securityDirectory);
 			}
