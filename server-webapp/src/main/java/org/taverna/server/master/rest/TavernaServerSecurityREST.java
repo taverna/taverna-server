@@ -30,8 +30,10 @@ import javax.ws.rs.core.UriBuilder;
 import javax.ws.rs.core.UriInfo;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.XmlElements;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlSchemaType;
+import javax.xml.bind.annotation.XmlTransient;
 import javax.xml.bind.annotation.XmlType;
 
 import org.apache.cxf.jaxrs.model.wadl.Description;
@@ -113,7 +115,7 @@ public interface TavernaServerSecurityREST {
 	@Produces({ "application/xml", "application/json" })
 	@Description("Describes a particular credential.")
 	@NonNull
-	Credential getParticularCredential(@NonNull @PathParam("id") String id)
+	CredentialHolder getParticularCredential(@NonNull @PathParam("id") String id)
 			throws NoCredentialException;
 
 	/**
@@ -131,35 +133,16 @@ public interface TavernaServerSecurityREST {
 	 * @throws BadStateChangeException
 	 *             If the workflow run is not in the initialising state.
 	 */
-	//@PUT
-	//@Path("credentials/{id}")
-	//@Consumes({ "application/xml", "application/json" })
-	//@Produces({ "application/xml", "application/json" })
-	//@Description("Updates a particular credential.")
-	@NonNull
-	Credential setParticularCredential(@NonNull @PathParam("id") String id,
-			@NonNull Credential c, @NonNull @Context UriInfo ui)
-			throws InvalidCredentialException, BadStateChangeException;
-
 	@PUT
 	@Path("credentials/{id}")
 	@Consumes({ "application/xml", "application/json" })
 	@Produces({ "application/xml", "application/json" })
 	@Description("Updates a particular credential.")
 	@NonNull
-	Credential setParticularCredential(@NonNull @PathParam("id") String id,
-			@NonNull Credential.Password c, @NonNull @Context UriInfo ui)
-			throws InvalidCredentialException, BadStateChangeException;
-
-	@PUT
-	@Path("credentials/{id}")
-	@Consumes({ "application/xml", "application/json" })
-	@Produces({ "application/xml", "application/json" })
-	@Description("Updates a particular credential.")
-	@NonNull
-	Credential setParticularCredential(@NonNull @PathParam("id") String id,
-			@NonNull Credential.KeyPair c, @NonNull @Context UriInfo ui)
-			throws InvalidCredentialException, BadStateChangeException;
+	CredentialHolder setParticularCredential(
+			@NonNull @PathParam("id") String id, @NonNull CredentialHolder c,
+			@NonNull @Context UriInfo ui) throws InvalidCredentialException,
+			BadStateChangeException;
 
 	/**
 	 * Adds a new credential.
@@ -174,29 +157,14 @@ public interface TavernaServerSecurityREST {
 	 * @throws BadStateChangeException
 	 *             If the workflow run is not in the initialising state.
 	 */
-	//@POST
-	//@Path("credentials")
-	//@Consumes({ "application/xml", "application/json" })
-	//@Description("Creates a new credential.")
-	@NonNull
-	Response addCredential(@NonNull Credential c, @NonNull @Context UriInfo ui)
-			throws InvalidCredentialException, BadStateChangeException;
-
 	@POST
 	@Path("credentials")
 	@Consumes({ "application/xml", "application/json" })
 	@Description("Creates a new credential.")
 	@NonNull
-	Response addCredential(@NonNull Credential.Password c, @NonNull @Context UriInfo ui)
-			throws InvalidCredentialException, BadStateChangeException;
-
-	@POST
-	@Path("credentials")
-	@Consumes({ "application/xml", "application/json" })
-	@Description("Creates a new credential.")
-	@NonNull
-	Response addCredential(@NonNull Credential.KeyPair c, @NonNull @Context UriInfo ui)
-			throws InvalidCredentialException, BadStateChangeException;
+	Response addCredential(@NonNull CredentialHolder c,
+			@NonNull @Context UriInfo ui) throws InvalidCredentialException,
+			BadStateChangeException;
 
 	/**
 	 * Deletes all credentials associated with a run.
@@ -480,7 +448,7 @@ public interface TavernaServerSecurityREST {
 			public URI href;
 			/** Descriptions of the credentials themselves. */
 			@XmlElement
-			public Credential[] credential;
+			public List<CredentialHolder> credential = new ArrayList<CredentialHolder>();
 
 			public Credentials() {
 			}
@@ -496,7 +464,8 @@ public interface TavernaServerSecurityREST {
 			public Credentials(@NonNull URI uri,
 					@NonNull Credential[] credential) {
 				this.href = uri;
-				this.credential = credential.clone();
+				for (Credential c : credential)
+					this.credential.add(new CredentialHolder(c));
 			}
 		}
 
@@ -534,6 +503,52 @@ public interface TavernaServerSecurityREST {
 	}
 
 	/**
+	 * A container for a credential, used to work around issues with type
+	 * inference in CXF's REST service handling and JAXB.
+	 * 
+	 * @see Credential.KeyPair
+	 * @see Credential.Password
+	 * @author Donal Fellows
+	 */
+	@XmlRootElement(name = "credential")
+	public static final class CredentialHolder {
+		/**
+		 * The credential inside this holder.
+		 */
+		@XmlElements({
+				@XmlElement(name = "keypair", type = Credential.KeyPair.class),
+				@XmlElement(name = "userpass", type = Credential.Password.class) })
+		public Credential credential;
+
+		public CredentialHolder() {
+		}
+
+		public CredentialHolder(Credential credential) {
+			this.credential = credential;
+		}
+
+		/**
+		 * Convenience accessor function.
+		 * 
+		 * @return The keypair credential held in this holder.
+		 */
+		@XmlTransient
+		public Credential.KeyPair getKeypair() {
+			return (Credential.KeyPair) this.credential;
+		}
+
+		/**
+		 * Convenience accessor function.
+		 * 
+		 * @return The userpass credential held in this holder.
+		 */
+		@XmlTransient
+		public Credential.Password getUserpass() {
+			return (Credential.Password) this.credential;
+		}
+	}
+
+	/**
 	 * A simple list of credential descriptions.
 	 * 
 	 * @author Donal Fellows
@@ -542,7 +557,8 @@ public interface TavernaServerSecurityREST {
 	public static final class CredentialList extends VersionedElement {
 		/** The descriptions of the credentials */
 		@XmlElement
-		public Credential[] credential;
+		@NonNull
+		public List<CredentialHolder> credential = new ArrayList<CredentialHolder>();
 
 		public CredentialList() {
 		}
@@ -555,7 +571,8 @@ public interface TavernaServerSecurityREST {
 		 */
 		public CredentialList(@NonNull Credential[] credential) {
 			super(true);
-			this.credential = credential.clone();
+			for (Credential c : credential)
+				this.credential.add(new CredentialHolder(c));
 		}
 	}
 
