@@ -6,6 +6,7 @@
 package org.taverna.server.master.rest;
 
 import static java.util.Collections.emptyList;
+import static org.taverna.server.master.common.Namespaces.SERVER;
 import static org.taverna.server.master.common.Namespaces.XLINK;
 import static org.taverna.server.master.common.Roles.USER;
 
@@ -511,13 +512,14 @@ public interface TavernaServerSecurityREST {
 	 * @author Donal Fellows
 	 */
 	@XmlRootElement(name = "credential")
+	@XmlType(name = "Credential")
 	public static final class CredentialHolder {
 		/**
 		 * The credential inside this holder.
 		 */
 		@XmlElements({
-				@XmlElement(name = "keypair", type = Credential.KeyPair.class),
-				@XmlElement(name = "userpass", type = Credential.Password.class) })
+				@XmlElement(name = "keypair", namespace = SERVER, type = Credential.KeyPair.class, required = true),
+				@XmlElement(name = "userpass", namespace = SERVER, type = Credential.Password.class, required = true) })
 		public Credential credential;
 
 		public CredentialHolder() {
