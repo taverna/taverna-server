@@ -35,7 +35,6 @@
 		<fileSet>
 			<directory>${project.parent.basedir}</directory>
 			<includes>
-				<include>*.html</include>
 				<include>*.xml</include>
 				<include>*.txt</include>
 				<include>*.pdf</include>
