@@ -44,6 +44,7 @@ import org.taverna.server.localworker.server.UsageRecordReceiver;
 import org.taverna.server.master.common.Workflow;
 import org.taverna.server.master.exceptions.NoCreateException;
 import org.taverna.server.master.exceptions.NoListenerException;
+import org.taverna.server.master.factories.ConfigurableRunFactory;
 import org.taverna.server.master.factories.ListenerFactory;
 import org.taverna.server.master.factories.RunFactory;
 import org.taverna.server.master.interfaces.Listener;
@@ -59,7 +60,7 @@ import org.taverna.server.master.utils.UsernamePrincipal;
  */
 @ManagedResource(objectName = JMX_ROOT + "Factory", description = "The factory for runs")
 public abstract class AbstractRemoteRunFactory implements ListenerFactory,
-		RunFactory {
+		RunFactory, ConfigurableRunFactory {
 	Log log = LogFactory.getLog("Taverna.Server.LocalWorker");
 
 	@SuppressWarnings("unused")
@@ -172,11 +173,13 @@ public abstract class AbstractRemoteRunFactory implements ListenerFactory,
 	}
 
 	@ManagedAttribute(description = "The host holding the RMI registry to communicate via.")
+	@Override
 	public String getRegistryHost() {
 		return state.getRegistryHost();
 	}
 
 	@ManagedAttribute(description = "The host holding the RMI registry to communicate via.")
+	@Override
 	public void setRegistryHost(String host) {
 		boolean rebuild = false;
 		if (host == null || host.isEmpty()) {
@@ -192,11 +195,13 @@ public abstract class AbstractRemoteRunFactory implements ListenerFactory,
 	}
 
 	@ManagedAttribute(description = "The port number of the RMI registry. Should not normally be set.")
+	@Override
 	public int getRegistryPort() {
 		return state.getRegistryPort();
 	}
 
 	@ManagedAttribute(description = "The port number of the RMI registry. Should not normally be set.")
+	@Override
 	public void setRegistryPort(int port) {
 		if (port != state.getRegistryPort())
 			registry = null;
@@ -302,23 +307,27 @@ public abstract class AbstractRemoteRunFactory implements ListenerFactory,
 
 	/** @return The names of the current runs. */
 	@ManagedAttribute(description = "The names of the current runs.", currencyTimeLimit = 5)
+	@Override
 	public String[] getCurrentRunNames() {
 		List<String> names = runDB.listRunNames();
 		return names.toArray(new String[names.size()]);
 	}
 
 	@ManagedAttribute(description = "The maximum number of simultaneous runs supported by the server.", currencyTimeLimit = 300)
+	@Override
 	public int getMaxRuns() {
 		return state.getMaxRuns();
 	}
 
 	@ManagedAttribute(description = "The maximum number of simultaneous runs supported by the server.")
+	@Override
 	public void setMaxRuns(int maxRuns) {
 		state.setMaxRuns(maxRuns);
 	}
 
 	/** @return How many minutes should a workflow live by default? */
 	@ManagedAttribute(description = "How many minutes should a workflow live by default?", currencyTimeLimit = 300)
+	@Override
 	public int getDefaultLifetime() {
 		return state.getDefaultLifetime();
 	}
@@ -330,6 +339,7 @@ public abstract class AbstractRemoteRunFactory implements ListenerFactory,
 	 *            Default lifetime, in minutes.
 	 */
 	@ManagedAttribute
+	@Override
 	public void setDefaultLifetime(int defaultLifetime) {
 		state.setDefaultLifetime(defaultLifetime);
 	}
