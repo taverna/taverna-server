@@ -81,6 +81,7 @@ TAVSERV-146: Use of data from previous runs
 TAVSERV-148: server returns 404 not found on incorrect content type
 TAVSERV-151: Server returns baclava files as application/octet-stream when
              they should be application/xml
+TAVSERV-152: Documentation of security
 TAVSERV-154: Summary of Inputs
 TAVSERV-155: Produce Usage Records
 TAVSERV-156: Change twitter integration because of OAuth
