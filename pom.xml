@@ -4,7 +4,7 @@
 	<groupId>uk.org.taverna.server</groupId>
 	<artifactId>server</artifactId>
 	<packaging>pom</packaging>
-	<version>2.3-SNAPSHOT</version>
+	<version>2.3</version>
 	<name>Taverna Server</name>
 	<description>Taverna Server is a service that provides execution of Taverna Workflows, provided they do not access the user interface while executing.</description>
 	<url>http://www.taverna.org.uk/</url>
@@ -44,9 +44,9 @@
 		</developer>
 	</developers>
 	<scm>
-		<connection>scm:svn:http://taverna.googlecode.com/svn/taverna/products/uk.org.taverna.server/branches/server-2.3-release-branch</connection>
-		<developerConnection>scm:svn:https://taverna.googlecode.com/svn/taverna/products/uk.org.taverna.server/branches/server-2.3-release-branch</developerConnection>
-		<url>http://code.google.com/p/taverna/source/browse/taverna/products/uk.org.taverna.server/branches/server-2.3-release-branch</url>
+		<connection>scm:svn:http://taverna.googlecode.com/svn/taverna/products/uk.org.taverna.server/tags/server-2.3</connection>
+		<developerConnection>scm:svn:https://taverna.googlecode.com/svn/taverna/products/uk.org.taverna.server/tags/server-2.3</developerConnection>
+		<url>http://code.google.com/p/taverna/source/browse/taverna/products/uk.org.taverna.server/tags/server-2.3</url>
 	</scm>
 	<organization>
 		<name>University of Manchester</name>
