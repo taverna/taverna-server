@@ -11,10 +11,12 @@ import static java.lang.Boolean.parseBoolean;
 import static java.lang.System.out;
 import static org.apache.commons.io.FileUtils.forceDelete;
 import static org.apache.commons.io.IOUtils.copy;
-//import static org.taverna.server.localworker.impl.LocalWorker.PASSWORD_FILE;
-import static org.taverna.server.localworker.impl.LocalWorker.SYSTEM_ENCODING;
-import static org.taverna.server.localworker.impl.SecurityConstants.CREDENTIAL_MANAGER_DIRECTORY;
-import static org.taverna.server.localworker.impl.SecurityConstants.CREDENTIAL_MANAGER_PASSWORD;
+import static org.taverna.server.localworker.impl.Constants.CREDENTIAL_MANAGER_DIRECTORY;
+import static org.taverna.server.localworker.impl.Constants.CREDENTIAL_MANAGER_PASSWORD;
+import static org.taverna.server.localworker.impl.Constants.DEFAULT_LISTENER_NAME;
+import static org.taverna.server.localworker.impl.Constants.KEYSTORE_PASSWORD;
+import static org.taverna.server.localworker.impl.Constants.START_WAIT_TIME;
+import static org.taverna.server.localworker.impl.Constants.SYSTEM_ENCODING;
 import static org.taverna.server.localworker.impl.TavernaRunManager.interactionFeedPath;
 import static org.taverna.server.localworker.impl.TavernaRunManager.interactionHost;
 import static org.taverna.server.localworker.impl.TavernaRunManager.interactionPort;
@@ -71,16 +73,6 @@ import edu.umd.cs.findbugs.annotations.SuppressWarnings;
 @SuppressWarnings({ "SE_BAD_FIELD", "SE_NO_SERIALVERSIONID" })
 public class WorkerCore extends UnicastRemoteObject implements Worker,
 		RemoteListener {
-	/**
-	 * The name of the standard listener, which is installed by default.
-	 */
-	public static final String DEFAULT_LISTENER_NAME = "io";
-
-	/**
-	 * Time to wait for the subprocess to wait, in milliseconds.
-	 */
-	private static final int START_WAIT_TIME = 1500;
-
 	static final Map<String, Property> pmap = new HashMap<String, Property>();
 
 	enum Property {
@@ -195,7 +187,9 @@ public class WorkerCore extends UnicastRemoteObject implements Worker,
 				e.printStackTrace();
 			} finally {
 				// We don't trust GC to clear password from memory
-				Arrays.fill(chars, '\00');
+				// We also take care not to clear the default password!
+				if (chars != KEYSTORE_PASSWORD)
+					Arrays.fill(chars, '\00');
 				if (pw != null)
 					pw.close();
 			}
@@ -233,9 +227,10 @@ public class WorkerCore extends UnicastRemoteObject implements Worker,
 	 *             If any of quite a large number of things goes wrong.
 	 */
 	@Override
-	public boolean initWorker(final String executeWorkflowCommand,
-			final String workflow, final File workingDir,
-			final File inputBaclava, final Map<String, File> inputFiles,
+	public boolean initWorker(final LocalWorker local,
+			final String executeWorkflowCommand, final String workflow,
+			final File workingDir, final File inputBaclava,
+			final Map<String, File> inputFiles,
 			final Map<String, String> inputValues, final File outputBaclava,
 			final File securityDir, final char[] password,
 			final Map<String, String> environment, final String token,
@@ -245,7 +240,7 @@ public class WorkerCore extends UnicastRemoteObject implements Worker,
 			@Override
 			public void run() {
 				try {
-					ProcessBuilder pb = createProcessBuilder(
+					ProcessBuilder pb = createProcessBuilder(local,
 							executeWorkflowCommand, workflow, workingDir,
 							inputBaclava, inputFiles, inputValues,
 							outputBaclava, securityDir, password, environment,
@@ -285,6 +280,8 @@ public class WorkerCore extends UnicastRemoteObject implements Worker,
 	/**
 	 * Assemble the process builder. Does not launch the subprocess.
 	 * 
+	 * @param local
+	 *            The local worker container.
 	 * @param executeWorkflowCommand
 	 *            The reference to the workflow engine implementation.
 	 * @param workflow
@@ -317,13 +314,13 @@ public class WorkerCore extends UnicastRemoteObject implements Worker,
 	 * @throws FileNotFoundException
 	 *             If we can't write the workflow out (unlikely)
 	 */
-	ProcessBuilder createProcessBuilder(String executeWorkflowCommand,
-			String workflow, File workingDir, File inputBaclava,
-			Map<String, File> inputFiles, Map<String, String> inputValues,
-			File outputBaclava, File securityDir, char[] password,
-			Map<String, String> environment, String token, List<String> runtime)
-			throws IOException, UnsupportedEncodingException,
-			FileNotFoundException {
+	ProcessBuilder createProcessBuilder(LocalWorker local,
+			String executeWorkflowCommand, String workflow, File workingDir,
+			File inputBaclava, Map<String, File> inputFiles,
+			Map<String, String> inputValues, File outputBaclava,
+			File securityDir, char[] password, Map<String, String> environment,
+			String token, List<String> runtime) throws IOException,
+			UnsupportedEncodingException, FileNotFoundException {
 		ProcessBuilder pb = new ProcessBuilder();
 		/*
 		 * WARNING! HERE THERE BE DRAGONS! BE CAREFUL HERE!
@@ -443,11 +440,21 @@ public class WorkerCore extends UnicastRemoteObject implements Worker,
 		env.put("RAVEN_APPHOME", workingDir.getCanonicalPath());
 		// Patch the environment to deal with TAVSERV-224
 		env.put("TAVERNA_RUN_ID", token);
-		if (interactionHost != null) {
-			env.put("INTERACTION_HOST", interactionHost);
-			env.put("INTERACTION_PORT", interactionPort);
-			env.put("INTERACTION_WEBDAV", interactionWebdavPath);
-			env.put("INTERACTION_FEED", interactionFeedPath);
+		if (interactionHost != null || local.interactionFeedURL != null
+				|| local.webdavURL != null) {
+			env.put("INTERACTION_HOST",
+					local.interactionFeedURL != null ? local.interactionFeedURL
+							.getHost() : interactionHost);
+			env.put("INTERACTION_PORT",
+					local.interactionFeedURL != null ? Integer
+							.toString(local.interactionFeedURL.getPort())
+							: interactionPort);
+			env.put("INTERACTION_FEED",
+					local.interactionFeedURL != null ? local.interactionFeedURL
+							.getPath() : interactionFeedPath);
+			env.put("INTERACTION_WEBDAV",
+					local.webdavURL != null ? local.webdavURL.getPath()
+							: interactionWebdavPath);
 		}
 		return pb;
 	}
