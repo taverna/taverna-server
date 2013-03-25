@@ -8,7 +8,6 @@ package org.taverna.server.localworker.impl;
 import static java.lang.Runtime.getRuntime;
 import static java.lang.System.getProperty;
 import static java.lang.System.out;
-import static java.nio.charset.Charset.defaultCharset;
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
@@ -17,10 +16,13 @@ import static org.apache.commons.io.FileUtils.forceDelete;
 import static org.apache.commons.io.FileUtils.forceMkdir;
 import static org.apache.commons.io.FileUtils.writeByteArrayToFile;
 import static org.apache.commons.io.FileUtils.writeLines;
-import static org.taverna.server.localworker.impl.SecurityConstants.HELIO_TOKEN_NAME;
-import static org.taverna.server.localworker.impl.SecurityConstants.KEYSTORE_FILE;
-import static org.taverna.server.localworker.impl.SecurityConstants.SECURITY_DIR_NAME;
-import static org.taverna.server.localworker.impl.SecurityConstants.TRUSTSTORE_FILE;
+import static org.taverna.server.localworker.impl.Constants.HELIO_TOKEN_NAME;
+import static org.taverna.server.localworker.impl.Constants.KEYSTORE_FILE;
+import static org.taverna.server.localworker.impl.Constants.KEYSTORE_PASSWORD;
+import static org.taverna.server.localworker.impl.Constants.SECURITY_DIR_NAME;
+import static org.taverna.server.localworker.impl.Constants.SUBDIR_LIST;
+import static org.taverna.server.localworker.impl.Constants.SYSTEM_ENCODING;
+import static org.taverna.server.localworker.impl.Constants.TRUSTSTORE_FILE;
 import static org.taverna.server.localworker.impl.utils.FilenameVerifier.getValidatedFile;
 import static org.taverna.server.localworker.remote.RemoteStatus.Finished;
 import static org.taverna.server.localworker.remote.RemoteStatus.Initialized;
@@ -31,6 +33,7 @@ import java.io.File;
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
 import java.net.URI;
+import java.net.URL;
 import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.ArrayList;
@@ -68,16 +71,6 @@ import edu.umd.cs.findbugs.annotations.SuppressWarnings;
 @SuppressWarnings({ "SE_BAD_FIELD", "SE_NO_SERIALVERSIONID" })
 public class LocalWorker extends UnicastRemoteObject implements RemoteSingleRun {
 	// ----------------------- CONSTANTS -----------------------
-
-	/**
-	 * Subdirectories of the working directory to create by default.
-	 */
-	private static final String[] dirstomake = { "conf", "externaltool",
-			"feed", "lib", "logs", "plugins", "repository", "t2-database",
-			"var" };
-
-	/** The name of the default encoding for characters on this machine. */
-	public static final String SYSTEM_ENCODING = defaultCharset().name();
 
 	/** Handle to the directory containing the security info. */
 	static final File SECURITY_DIR;
@@ -160,14 +153,15 @@ public class LocalWorker extends UnicastRemoteObject implements RemoteSingleRun 
 	/** Location for security information to be written to. */
 	File securityDirectory;
 	/**
-	 * Password to use to encrypt security information. This default is <7 chars
-	 * to work even without Unlimited Strength JCE.
+	 * Password to use to encrypt security information.
 	 */
-	char[] keystorePassword = new char[] { 'c', 'h', 'a', 'n', 'g', 'e' };
+	char[] keystorePassword = KEYSTORE_PASSWORD;
 	/** Additional server-specified environment settings. */
 	Map<String, String> environment = new HashMap<String, String>();
 	/** Additional server-specified java runtime settings. */
 	List<String> runtimeSettings = new ArrayList<String>();
+	URL interactionFeedURL;
+	URL webdavURL;
 
 	// ----------------------- METHODS -----------------------
 
@@ -211,7 +205,7 @@ public class LocalWorker extends UnicastRemoteObject implements RemoteSingleRun 
 		out.println("about to create " + base);
 		try {
 			forceMkdir(base);
-			for (String subdir : dirstomake) {
+			for (String subdir : SUBDIR_LIST) {
 				new File(base, subdir).mkdir();
 			}
 		} catch (IOException e) {
@@ -703,7 +697,7 @@ public class LocalWorker extends UnicastRemoteObject implements RemoteSingleRun 
 		 * *transferred* to the worker core which doesn't copy it but *does*
 		 * clear it after use.
 		 */
-		return core.initWorker(executeWorkflowCommand, workflow, base,
+		return core.initWorker(this, executeWorkflowCommand, workflow, base,
 				inputBaclavaFile, inputRealFiles, inputValues,
 				outputBaclavaFile, securityDirectory, pw, environment,
 				masterToken, runtimeSettings);
@@ -717,5 +711,11 @@ public class LocalWorker extends UnicastRemoteObject implements RemoteSingleRun 
 	@Override
 	public Date getStartTimestamp() {
 		return start == null ? null : new Date(start.getTime());
+	}
+
+	@Override
+	public void setInteractionServiceDetails(URL feed, URL webdav) {
+		interactionFeedURL = feed;
+		webdavURL = webdav;
 	}
 }
