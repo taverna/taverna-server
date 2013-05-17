@@ -1,17 +1,18 @@
 /*
- * Copyright (C) 2010-2011 The University of Manchester
+ * Copyright (C) 2010-2013 The University of Manchester
  * 
- * See the file "LICENSE.txt" for license terms.
+ * See the file "LICENSE" for license terms.
  */
-package org.taverna.server.master.localworker;
+package org.taverna.server.master.worker;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
-import static org.taverna.server.master.localworker.RunConnection.COUNT_QUERY;
-import static org.taverna.server.master.localworker.RunConnection.NAMES_QUERY;
-import static org.taverna.server.master.localworker.RunConnection.SCHEMA;
-import static org.taverna.server.master.localworker.RunConnection.TABLE;
-import static org.taverna.server.master.localworker.RunConnection.TIMEOUT_QUERY;
+import static java.util.UUID.randomUUID;
+import static org.taverna.server.master.worker.RunConnection.COUNT_QUERY;
+import static org.taverna.server.master.worker.RunConnection.NAMES_QUERY;
+import static org.taverna.server.master.worker.RunConnection.SCHEMA;
+import static org.taverna.server.master.worker.RunConnection.TABLE;
+import static org.taverna.server.master.worker.RunConnection.TIMEOUT_QUERY;
 
 import java.io.IOException;
 import java.rmi.MarshalledObject;
@@ -94,6 +95,10 @@ public class RunConnection {
 	@Persistent(defaultFetchGroup = "true")
 	@Column(length = 128)
 	String owner;
+
+	@Persistent(defaultFetchGroup = "true")
+	@Column(length = 36)
+	private String securityToken;
 
 	@Persistent(defaultFetchGroup = "true", serialized = "true")
 	@Column(jdbcType = "BLOB", sqlType = "BLOB")
@@ -192,6 +197,7 @@ public class RunConnection {
 			run = new MarshalledObject<RemoteSingleRun>(rrd.run);
 			securityContextFactory = rrd.getSecurityContext().getFactory();
 			owner = rrd.getSecurityContext().getOwner().getName();
+			securityToken = randomUUID().toString();
 		}
 		// Properties that are set multiple times
 		expiry = rrd.getExpiry();
@@ -201,5 +207,9 @@ public class RunConnection {
 		credentials = rrd.getSecurityContext().getCredentials();
 		trust = rrd.getSecurityContext().getTrusted();
 		setFinished(rrd.doneTransitionToFinished);
+	}
+
+	public String getSecurityToken() {
+		return securityToken;
 	}
 }

@@ -1,7 +1,7 @@
 /*
  * Copyright (C) 2010-2011 The University of Manchester
  * 
- * See the file "LICENSE.txt" for license terms.
+ * See the file "LICENSE" for license terms.
  */
 package org.taverna.server.master.soap;
 
@@ -18,7 +18,6 @@ import javax.jws.WebService;
 
 import org.apache.cxf.annotations.WSDLDocumentation;
 import org.taverna.server.master.common.Credential;
-import org.taverna.server.master.common.DirEntryReference;
 import org.taverna.server.master.common.InputDescription;
 import org.taverna.server.master.common.Permission;
 import org.taverna.server.master.common.RunReference;
@@ -450,6 +449,8 @@ public interface TavernaServerSOAP {
 	 * @param status
 	 *            The status to change to. Changing to the current status will
 	 *            always have no effect.
+	 * @return An empty string if the state change was completed, or a
+	 *         description (never empty) of why the state change is ongoing.
 	 * @throws UnknownRunException
 	 *             If the server doesn't know about the run or if the user is
 	 *             not permitted to see it.
@@ -458,8 +459,9 @@ public interface TavernaServerSOAP {
 	 * @throws BadStateChangeException
 	 *             If the state change requested is impossible.
 	 */
+	@WebResult(name = "PartialityReason")
 	@WSDLDocumentation("Set the status of a given workflow run.")
-	void setRunStatus(@WebParam(name = "runName") String runName,
+	String setRunStatus(@WebParam(name = "runName") String runName,
 			@WebParam(name = "status") Status status)
 			throws UnknownRunException, NoUpdateException,
 			BadStateChangeException;
@@ -744,9 +746,9 @@ public interface TavernaServerSOAP {
 	 */
 	@WebResult(name = "DirectoryEntry")
 	@WSDLDocumentation("Get the contents of any directory at/under the run's working directory.")
-	DirEntryReference[] getRunDirectoryContents(
+	DirEntry[] getRunDirectoryContents(
 			@WebParam(name = "runName") String runName,
-			@WebParam(name = "directory") DirEntryReference directory)
+			@WebParam(name = "directory") DirEntry directory)
 			throws UnknownRunException, FilesystemAccessException,
 			NoDirectoryEntryException;
 
@@ -773,7 +775,7 @@ public interface TavernaServerSOAP {
 	@WebResult(name = "ZipFile")
 	@WSDLDocumentation("Get the contents of any directory (and its subdirectories) at/under the run's working directory, returning it as a compressed ZIP file.")
 	byte[] getRunDirectoryAsZip(@WebParam(name = "runName") String runName,
-			@WebParam(name = "directory") DirEntryReference directory)
+			@WebParam(name = "directory") DirEntry directory)
 			throws UnknownRunException, FilesystemAccessException,
 			NoDirectoryEntryException;
 
@@ -801,7 +803,7 @@ public interface TavernaServerSOAP {
 	@WSDLDocumentation("Get the contents of any directory (and its subdirectories) at/under the run's working directory, returning it as a compressed ZIP file that is streamed by MTOM.")
 	ZippedDirectory getRunDirectoryAsZipMTOM(
 			@WebParam(name = "runName") String runName,
-			@WebParam(name = "directory") DirEntryReference directory)
+			@WebParam(name = "directory") DirEntry directory)
 			throws UnknownRunException, FilesystemAccessException,
 			NoDirectoryEntryException;
 
@@ -834,9 +836,8 @@ public interface TavernaServerSOAP {
 	 */
 	@WebResult(name = "CreatedDirectory")
 	@WSDLDocumentation("Make a new empty directory beneath an existing one, all relative to the given run's main working directory.")
-	DirEntryReference makeRunDirectory(
-			@WebParam(name = "runName") String runName,
-			@WebParam(name = "parentDirectory") DirEntryReference parent,
+	DirEntry makeRunDirectory(@WebParam(name = "runName") String runName,
+			@WebParam(name = "parentDirectory") DirEntry parent,
 			@WebParam(name = "directoryName") String name)
 			throws UnknownRunException, NoUpdateException,
 			FilesystemAccessException, NoDirectoryEntryException;
@@ -869,8 +870,8 @@ public interface TavernaServerSOAP {
 	 */
 	@WebResult(name = "CreatedFile")
 	@WSDLDocumentation("Make a new empty file in an existing directory, which may be the run's working directory or any directory beneath it.")
-	DirEntryReference makeRunFile(@WebParam(name = "runName") String runName,
-			@WebParam(name = "parentDirectory") DirEntryReference parent,
+	DirEntry makeRunFile(@WebParam(name = "runName") String runName,
+			@WebParam(name = "parentDirectory") DirEntry parent,
 			@WebParam(name = "fileNameTail") String name)
 			throws UnknownRunException, NoUpdateException,
 			FilesystemAccessException, NoDirectoryEntryException;
@@ -898,7 +899,7 @@ public interface TavernaServerSOAP {
 	 */
 	@WSDLDocumentation("Destroy an entry (file or directory) in or beneath a run's working directory.")
 	void destroyRunDirectoryEntry(@WebParam(name = "runName") String runName,
-			@WebParam(name = "directoryEntry") DirEntryReference dirEntry)
+			@WebParam(name = "directoryEntry") DirEntry dirEntry)
 			throws UnknownRunException, NoUpdateException,
 			FilesystemAccessException, NoDirectoryEntryException;
 
@@ -924,7 +925,7 @@ public interface TavernaServerSOAP {
 	@WebResult(name = "FileContents")
 	@WSDLDocumentation("Get the contents of a file under the run's working directory.")
 	byte[] getRunFileContents(@WebParam(name = "runName") String runName,
-			@WebParam(name = "fileName") DirEntryReference file)
+			@WebParam(name = "fileName") DirEntry file)
 			throws UnknownRunException, FilesystemAccessException,
 			NoDirectoryEntryException;
 
@@ -951,7 +952,7 @@ public interface TavernaServerSOAP {
 	@WSDLDocumentation("Get the contents of a file via MTOM.")
 	FileContents getRunFileContentsMTOM(
 			@WebParam(name = "runName") String runName,
-			@WebParam(name = "fileName") DirEntryReference file)
+			@WebParam(name = "fileName") DirEntry file)
 			throws UnknownRunException, FilesystemAccessException,
 			NoDirectoryEntryException;
 
@@ -979,7 +980,7 @@ public interface TavernaServerSOAP {
 	 */
 	@WSDLDocumentation("Set the contents of a file under the run's working directory.")
 	void setRunFileContents(@WebParam(name = "runName") String runName,
-			@WebParam(name = "fileName") DirEntryReference file,
+			@WebParam(name = "fileName") DirEntry file,
 			@WebParam(name = "contents") byte[] newContents)
 			throws UnknownRunException, NoUpdateException,
 			FilesystemAccessException, NoDirectoryEntryException;
@@ -1032,7 +1033,34 @@ public interface TavernaServerSOAP {
 	@WebResult(name = "FileLength")
 	@WSDLDocumentation("Get the length of any file (in bytes) at/under the run's working directory.")
 	long getRunFileLength(@WebParam(name = "runName") String runName,
-			@WebParam(name = "fileName") DirEntryReference file)
+			@WebParam(name = "fileName") DirEntry file)
+			throws UnknownRunException, FilesystemAccessException,
+			NoDirectoryEntryException;
+
+	/**
+	 * Get the time that the file or directory (at/under the run's working
+	 * directory) was last modified. Runs do not share working directories.
+	 * 
+	 * @param runName
+	 *            The handle of the run.
+	 * @param file
+	 *            The name of the file to get the modification date of; the main
+	 *            working directory is <tt>/</tt> and <tt>..</tt> is always
+	 *            disallowed.
+	 * @return The modification date of the file or directory, as understood by
+	 *         the underlying operating system.
+	 * @throws UnknownRunException
+	 *             If the server doesn't know about the run or if the user is
+	 *             not permitted to see it.
+	 * @throws FilesystemAccessException
+	 *             If some assumption is violated.
+	 * @throws NoDirectoryEntryException
+	 *             If the file or directory doesn't exist.
+	 */
+	@WebResult(name = "FileModified")
+	@WSDLDocumentation("Get the length of any file (in bytes) at/under the run's working directory.")
+	Date getRunFileModified(@WebParam(name = "runName") String runName,
+			@WebParam(name = "fileName") DirEntry file)
 			throws UnknownRunException, FilesystemAccessException,
 			NoDirectoryEntryException;
 
@@ -1058,7 +1086,7 @@ public interface TavernaServerSOAP {
 	@WebResult(name = "FileContentType")
 	@WSDLDocumentation("Get the content type of any file at/under the run's working directory.")
 	String getRunFileType(@WebParam(name = "runName") String runName,
-			@WebParam(name = "fileName") DirEntryReference file)
+			@WebParam(name = "fileName") DirEntry file)
 			throws UnknownRunException, FilesystemAccessException,
 			NoDirectoryEntryException;
 

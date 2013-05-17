@@ -1,9 +1,9 @@
 /*
  * Copyright (C) 2011-2012 The University of Manchester
  * 
- * See the file "LICENSE.txt" for license terms.
+ * See the file "LICENSE" for license terms.
  */
-package org.taverna.server.master.localworker;
+package org.taverna.server.master.worker;
 
 import static java.security.Security.addProvider;
 import static java.security.Security.getProvider;
@@ -20,6 +20,8 @@ import org.apache.commons.logging.Log;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.springframework.beans.factory.annotation.Required;
 import org.springframework.beans.factory.annotation.Value;
+import org.taverna.server.master.ContentsDescriptorBuilder.UriBuilderFactory;
+import org.taverna.server.master.interfaces.TavernaRun;
 import org.taverna.server.master.utils.FilenameUtils;
 import org.taverna.server.master.utils.UsernamePrincipal;
 import org.taverna.server.master.utils.X500Utils;
@@ -42,6 +44,8 @@ public class SecurityContextFactory implements
 	transient RunDBSupport db;
 	transient FilenameUtils fileUtils;
 	transient X500Utils x500Utils;
+	transient UriBuilderFactory uriSource;
+	transient String httpRealm;
 	private transient BouncyCastleProvider provider;
 
 	/**
@@ -57,7 +61,7 @@ public class SecurityContextFactory implements
 	boolean logSecurityDetails;
 
 	private Log log() {
-		return getLog("Taverna.Server.LocalWorker.Security");
+		return getLog("Taverna.Server.Worker.Security");
 	}
 
 	@SuppressWarnings("ST_WRITE_TO_STATIC_FROM_INSTANCE_METHOD")
@@ -114,11 +118,22 @@ public class SecurityContextFactory implements
 		this.x500Utils = x500Utils;
 	}
 
+	@Required
+	public void setUriSource(UriBuilderFactory uriSource) {
+		this.uriSource = uriSource;
+	}
+
+	@Required
+	public void setHttpRealm(String realm) {
+		this.httpRealm = realm; //${http.realmName}
+	}
+
 	@Override
-	public SecurityContextDelegate create(RemoteRunDelegate run,
+	public SecurityContextDelegate create(TavernaRun run,
 			UsernamePrincipal owner) throws Exception {
 		log().debug("constructing security context delegate for " + owner);
-		return new SecurityContextDelegateImpl(run, owner, this);
+		RemoteRunDelegate rrd = (RemoteRunDelegate) run;
+		return new HelioSecurityContextDelegateImpl(rrd, owner, this);
 	}
 
 	private Object readResolve() {

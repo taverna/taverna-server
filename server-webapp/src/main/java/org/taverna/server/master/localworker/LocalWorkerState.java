@@ -1,7 +1,7 @@
 /*
- * Copyright (C) 2010-2011 The University of Manchester
+ * Copyright (C) 2010-2013 The University of Manchester
  * 
- * See the file "LICENSE.txt" for license terms.
+ * See the file "LICENSE" for license terms.
  */
 package org.taverna.server.master.localworker;
 
@@ -17,8 +17,8 @@ import static org.taverna.server.master.defaults.Default.SECURE_FORK_IMPLEMENTAT
 import static org.taverna.server.master.defaults.Default.SERVER_WORKER_IMPLEMENTATION_JAR;
 import static org.taverna.server.master.defaults.Default.SUBPROCESS_START_POLL_SLEEP;
 import static org.taverna.server.master.defaults.Default.SUBPROCESS_START_WAIT;
-import static org.taverna.server.master.localworker.LocalWorkerManagementState.KEY;
-import static org.taverna.server.master.localworker.LocalWorkerManagementState.makeInstance;
+import static org.taverna.server.master.localworker.PersistedState.KEY;
+import static org.taverna.server.master.localworker.PersistedState.makeInstance;
 
 import java.io.File;
 import java.io.FilenameFilter;
@@ -37,9 +37,10 @@ import org.taverna.server.master.utils.JDOSupport;
  * @author Donal Fellows
  */
 @PersistenceAware
-public class LocalWorkerState extends JDOSupport<LocalWorkerManagementState> {
+public class LocalWorkerState extends JDOSupport<PersistedState> implements
+		LocalWorkerModel {
 	public LocalWorkerState() {
-		super(LocalWorkerManagementState.class);
+		super(PersistedState.class);
 	}
 
 	private LocalWorkerState self;
@@ -117,88 +118,63 @@ public class LocalWorkerState extends JDOSupport<LocalWorkerManagementState> {
 
 	int operatingLimit;
 
-	/**
-	 * @param defaultLifetime
-	 *            how long a workflow run should live by default, in minutes.
-	 */
+	@Override
 	public void setDefaultLifetime(int defaultLifetime) {
 		this.defaultLifetime = defaultLifetime;
 		if (loadedState)
 			self.store();
 	}
 
-	/**
-	 * @return how long a workflow run should live by default, in minutes.
-	 */
+	@Override
 	public int getDefaultLifetime() {
 		return defaultLifetime < 1 ? RUN_LIFE_MINUTES : defaultLifetime;
 	}
 
-	/**
-	 * @param maxRuns
-	 *            the maxRuns to set
-	 */
+	@Override
 	public void setMaxRuns(int maxRuns) {
 		this.maxRuns = maxRuns;
 		if (loadedState)
 			self.store();
 	}
 
-	/**
-	 * @return the maxRuns
-	 */
+	@Override
 	public int getMaxRuns() {
 		return maxRuns < 1 ? Default.RUN_COUNT_MAX : maxRuns;
 	}
 
-	/**
-	 * @return the operatingLimit
-	 */
+	@Override
 	public int getOperatingLimit() {
 		return operatingLimit < 1 ? RUN_OPERATING_LIMIT : operatingLimit;
 	}
 
-	/**
-	 * @param operatingLimit
-	 *            the operatingLimit to set
-	 */
+	@Override
 	public void setOperatingLimit(int operatingLimit) {
 		this.operatingLimit = operatingLimit;
 		if (loadedState)
 			self.store();
 	}
 
-	/**
-	 * @param factoryProcessNamePrefix
-	 *            the factoryProcessNamePrefix to set
-	 */
+	@Override
 	public void setFactoryProcessNamePrefix(String factoryProcessNamePrefix) {
 		this.factoryProcessNamePrefix = factoryProcessNamePrefix;
 		if (loadedState)
 			self.store();
 	}
 
-	/**
-	 * @return the factoryProcessNamePrefix
-	 */
+	@Override
 	public String getFactoryProcessNamePrefix() {
 		return factoryProcessNamePrefix == null ? RMI_PREFIX
 				: factoryProcessNamePrefix;
 	}
 
-	/**
-	 * @param executeWorkflowScript
-	 *            the executeWorkflowScript to set
-	 */
+	@Override
 	public void setExecuteWorkflowScript(String executeWorkflowScript) {
 		this.executeWorkflowScript = executeWorkflowScript;
 		if (loadedState)
 			self.store();
 	}
 
-	/**
-	 * @return the executeWorkflowScript
-	 */
+	@Override
 	public String getExecuteWorkflowScript() {
 		return executeWorkflowScript == null ? defaultExecuteWorkflowScript
 				: executeWorkflowScript;
@@ -235,121 +211,86 @@ public class LocalWorkerState extends JDOSupport<LocalWorkerManagementState> {
 		return defaultExecuteWorkflowScript;
 	}
 
-	/**
-	 * @param extraArgs
-	 *            the extraArgs to set
-	 */
+	@Override
 	public void setExtraArgs(String[] extraArgs) {
 		this.extraArgs = extraArgs.clone();
 		if (loadedState)
 			self.store();
 	}
 
-	/**
-	 * @return the extraArgs
-	 */
+	@Override
 	public String[] getExtraArgs() {
 		return extraArgs == null ? EXTRA_ARGUMENTS : extraArgs.clone();
 	}
 
-	/**
-	 * @param waitSeconds
-	 *            the waitSeconds to set
-	 */
+	@Override
 	public void setWaitSeconds(int waitSeconds) {
 		this.waitSeconds = waitSeconds;
 		if (loadedState)
 			self.store();
 	}
 
-	/**
-	 * @return the waitSeconds
-	 */
+	@Override
 	public int getWaitSeconds() {
 		return waitSeconds < 1 ? SUBPROCESS_START_WAIT : waitSeconds;
 	}
 
-	/**
-	 * @param sleepMS
-	 *            the sleepMS to set
-	 */
+	@Override
 	public void setSleepMS(int sleepMS) {
 		this.sleepMS = sleepMS;
 		if (loadedState)
 			self.store();
 	}
 
-	/**
-	 * @return the sleepMS
-	 */
+	@Override
 	public int getSleepMS() {
 		return sleepMS < 1 ? SUBPROCESS_START_POLL_SLEEP : sleepMS;
 	}
 
-	/**
-	 * @param serverWorkerJar
-	 *            the serverWorkerJar to set
-	 */
+	@Override
 	public void setServerWorkerJar(String serverWorkerJar) {
 		this.serverWorkerJar = serverWorkerJar;
 		if (loadedState)
 			self.store();
 	}
 
-	/**
-	 * @return the serverWorkerJar
-	 */
+	@Override
 	public String getServerWorkerJar() {
 		return serverWorkerJar == null ? DEFAULT_WORKER_JAR : serverWorkerJar;
 	}
 
-	/**
-	 * @param serverForkerJar
-	 *            the serverForkerJar to set
-	 */
+	@Override
 	public void setServerForkerJar(String serverForkerJar) {
 		this.serverForkerJar = serverForkerJar;
 		if (loadedState)
 			self.store();
 	}
 
-	/**
-	 * @return the serverForkerJar
-	 */
+	@Override
 	public String getServerForkerJar() {
 		return serverForkerJar == null ? DEFAULT_FORKER_JAR : serverForkerJar;
 	}
 
-	/**
-	 * @param javaBinary
-	 *            the javaBinary to set
-	 */
+	@Override
 	public void setJavaBinary(String javaBinary) {
 		this.javaBinary = javaBinary;
 		if (loadedState)
 			self.store();
 	}
 
-	/**
-	 * @return the javaBinary
-	 */
+	@Override
 	public String getJavaBinary() {
 		return javaBinary == null ? DEFAULT_JAVA_BINARY : javaBinary;
 	}
 
-	/**
-	 * @param passwordFile
-	 *            the passwordFile to set
-	 */
+	@Override
 	public void setPasswordFile(String passwordFile) {
 		this.passwordFile = passwordFile;
 		if (loadedState)
 			self.store();
 	}
 
-	/**
-	 * @return the passwordFile
-	 */
+	@Override
 	public String getPasswordFile() {
 		return passwordFile == null ? defaultPasswordFile : passwordFile;
 	}
@@ -358,28 +299,20 @@ public class LocalWorkerState extends JDOSupport<LocalWorkerManagementState> {
 		this.defaultPasswordFile = defaultPasswordFile;
 	}
 
-	/**
-	 * @param registryHost
-	 *            the registryHost to set
-	 */
+	@Override
 	public void setRegistryHost(String registryHost) {
 		this.registryHost = (registryHost == null ? "" : registryHost);
 		if (loadedState)
 			self.store();
 	}
 
-	/**
-	 * @return the registryHost
-	 */
+	@Override
 	public String getRegistryHost() {
 		return (registryHost == null || registryHost.isEmpty()) ? null
 				: registryHost;
 	}
 
-	/**
-	 * @param registryPort
-	 *            the registryPort to set
-	 */
+	@Override
 	public void setRegistryPort(int registryPort) {
 		this.registryPort = ((registryPort < 1 || registryPort > 65534) ? REGISTRY_PORT
 				: registryPort);
@@ -387,9 +320,7 @@ public class LocalWorkerState extends JDOSupport<LocalWorkerManagementState> {
 			self.store();
 	}
 
-	/**
-	 * @return the registryPort
-	 */
+	@Override
 	public int getRegistryPort() {
 		return registryPort == 0 ? REGISTRY_PORT : registryPort;
 	}
@@ -403,7 +334,7 @@ public class LocalWorkerState extends JDOSupport<LocalWorkerManagementState> {
 	public void load() {
 		if (loadedState || !isPersistent())
 			return;
-		LocalWorkerManagementState state = getById(KEY);
+		LocalWorkerModel state = getById(KEY);
 		if (state == null) {
 			store();
 			return;
@@ -431,7 +362,7 @@ public class LocalWorkerState extends JDOSupport<LocalWorkerManagementState> {
 	public void store() {
 		if (!isPersistent())
 			return;
-		LocalWorkerManagementState state = getById(KEY);
+		LocalWorkerModel state = getById(KEY);
 		if (state == null) {
 			state = persist(makeInstance());
 		}

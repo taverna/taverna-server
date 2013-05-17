@@ -1,13 +1,14 @@
 /*
  * Copyright (C) 2010-2011 The University of Manchester
  * 
- * See the file "LICENSE.txt" for license terms.
+ * See the file "LICENSE" for license terms.
  */
 package org.taverna.server.master;
 
 import static javax.ws.rs.core.Response.created;
 import static javax.ws.rs.core.UriBuilder.fromUri;
 import static org.taverna.server.master.common.Uri.secure;
+import static org.taverna.server.master.utils.RestUtils.opt;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -79,6 +80,12 @@ abstract class ListenersREST implements TavernaServerListenersREST,
 			result.add(new ListenerDescription(l,
 					fromUri(ub.build(l.getName()))));
 		return new Listeners(result, ub);
+	}
+
+	@Override
+	@CallCounted
+	public Response listenersOptions() {
+		return opt();
 	}
 }
 

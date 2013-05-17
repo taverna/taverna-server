@@ -1,9 +1,9 @@
 /*
  * Copyright (C) 2010-2011 The University of Manchester
  * 
- * See the file "LICENSE.txt" for license terms.
+ * See the file "LICENSE" for license terms.
  */
-package org.taverna.server.master.localworker;
+package org.taverna.server.master.worker;
 
 import java.util.List;
 
@@ -76,5 +76,8 @@ public interface RunDBSupport {
 	 */
 	void setNotifier(CompletionNotifier notifier);
 
-	AbstractRemoteRunFactory getFactory();
+	/**
+	 * @return A reference to the actual factory for remote runs.
+	 */
+	FactoryBean getFactory();
 }

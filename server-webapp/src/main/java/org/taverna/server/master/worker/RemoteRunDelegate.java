@@ -1,9 +1,9 @@
 /*
- * Copyright (C) 2010-2012 The University of Manchester
+ * Copyright (C) 2010-2013 The University of Manchester
  * 
- * See the file "LICENSE.txt" for license terms.
+ * See the file "LICENSE" for license terms.
  */
-package org.taverna.server.master.localworker;
+package org.taverna.server.master.worker;
 
 import static java.lang.System.currentTimeMillis;
 import static java.util.Calendar.MINUTE;
@@ -12,7 +12,7 @@ import static java.util.Collections.unmodifiableSet;
 import static java.util.UUID.randomUUID;
 import static org.apache.commons.io.IOUtils.closeQuietly;
 import static org.apache.commons.logging.LogFactory.getLog;
-import static org.taverna.server.master.localworker.RemoteRunDelegate.checkBadFilename;
+import static org.taverna.server.master.worker.RemoteRunDelegate.checkBadFilename;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
@@ -69,8 +69,9 @@ import org.taverna.server.master.utils.UsernamePrincipal;
  * @author Donal Fellows
  */
 @edu.umd.cs.findbugs.annotations.SuppressWarnings("SE_NO_SERIALVERSIONID")
+@SuppressWarnings("serial")
 public class RemoteRunDelegate implements TavernaRun {
-	private transient Log log = getLog("Taverna.Server.LocalWorker");
+	private transient Log log = getLog("Taverna.Server.Worker");
 	transient TavernaSecurityContext secContext;
 	Date creationInstant;
 	Workflow workflow;
@@ -81,12 +82,12 @@ public class RemoteRunDelegate implements TavernaRun {
 	transient String id;
 	transient RemoteSingleRun run;
 	transient RunDBSupport db;
-	transient AbstractRemoteRunFactory factory;
+	transient FactoryBean factory;
 	boolean doneTransitionToFinished;
 
-	RemoteRunDelegate(Date creationInstant, Workflow workflow,
+	public RemoteRunDelegate(Date creationInstant, Workflow workflow,
 			RemoteSingleRun rsr, int defaultLifetime, RunDBSupport db, UUID id,
-			AbstractRemoteRunFactory factory) {
+			FactoryBean factory) {
 		if (rsr == null) {
 			throw new IllegalArgumentException("remote run must not be null");
 		}
@@ -103,6 +104,17 @@ public class RemoteRunDelegate implements TavernaRun {
 	}
 
 	RemoteRunDelegate() {
+	}
+
+	/**
+	 * Get the types of listener supported by this run.
+	 * 
+	 * @return A list of listener type names.
+	 * @throws RemoteException
+	 *             If anything goes wrong.
+	 */
+	public List<String> getListenerTypes() throws RemoteException {
+		return run.getListenerTypes();
 	}
 
 	@Override
@@ -239,6 +251,9 @@ public class RemoteRunDelegate implements TavernaRun {
 				if (!factory.isAllowingRunsToStart())
 					throw new OverloadedException();
 				run.setStatus(RemoteStatus.Operating);
+				factory.getMasterEventFeed().started(this,
+						"started run execution",
+						"The execution of run " + id + " has started.");
 				break;
 			case Stopped:
 				run.setStatus(RemoteStatus.Stopped);
@@ -448,13 +463,13 @@ public class RemoteRunDelegate implements TavernaRun {
 		run = ((MarshalledObject<RemoteSingleRun>) in.readObject()).get();
 	}
 
-	void setSecurityContext(TavernaSecurityContext tavernaSecurityContext) {
+	public void setSecurityContext(TavernaSecurityContext tavernaSecurityContext) {
 		secContext = tavernaSecurityContext;
 	}
 }
 
 abstract class DEDelegate implements DirectoryEntry {
-	Log log = getLog("Taverna.Server.LocalWorker");
+	Log log = getLog("Taverna.Server.Worker");
 	private RemoteDirectoryEntry entry;
 	private String name;
 	private String full;
@@ -738,7 +753,7 @@ class FileDelegate extends DEDelegate implements File {
 }
 
 class ListenerDelegate implements Listener {
-	private Log log = getLog("Taverna.Server.LocalWorker");
+	private Log log = getLog("Taverna.Server.Worker");
 	private RemoteListener r;
 	String conf;
 
@@ -874,6 +889,7 @@ class RunInput implements Input {
 	}
 }
 
+@SuppressWarnings("serial")
 class SecurityContextReconstructionException extends RuntimeException {
 	public SecurityContextReconstructionException(Throwable t) {
 		super("failed to rebuild security context", t);

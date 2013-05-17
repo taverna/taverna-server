@@ -1,7 +1,7 @@
 /*
  * Copyright (C) 2010-2012 The University of Manchester
  * 
- * See the file "LICENSE.txt" for license terms.
+ * See the file "LICENSE" for license terms.
  */
 package org.taverna.server.localworker.impl;
 
@@ -10,6 +10,7 @@ import static java.io.File.pathSeparator;
 import static java.lang.Boolean.parseBoolean;
 import static java.lang.System.out;
 import static org.apache.commons.io.FileUtils.forceDelete;
+import static org.apache.commons.io.FileUtils.write;
 import static org.apache.commons.io.IOUtils.copy;
 import static org.taverna.server.localworker.impl.Constants.CREDENTIAL_MANAGER_DIRECTORY;
 import static org.taverna.server.localworker.impl.Constants.CREDENTIAL_MANAGER_PASSWORD;
@@ -32,7 +33,6 @@ import static org.taverna.server.localworker.remote.RemoteStatus.Operating;
 
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -51,6 +51,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import javax.xml.datatype.DatatypeConfigurationException;
 import javax.xml.ws.Holder;
 
 import org.ogf.usage.JobUsageRecord;
@@ -71,6 +72,7 @@ import edu.umd.cs.findbugs.annotations.SuppressWarnings;
  * @author Donal Fellows
  */
 @SuppressWarnings({ "SE_BAD_FIELD", "SE_NO_SERIALVERSIONID" })
+@java.lang.SuppressWarnings("serial")
 public class WorkerCore extends UnicastRemoteObject implements Worker,
 		RemoteListener {
 	static final Map<String, Property> pmap = new HashMap<String, Property>();
@@ -152,7 +154,7 @@ public class WorkerCore extends UnicastRemoteObject implements Worker,
 		@Override
 		public void run() {
 			try {
-				copy(from, to);
+				copy(from, to, SYSTEM_ENCODING);
 			} catch (IOException e) {
 			}
 		}
@@ -163,12 +165,12 @@ public class WorkerCore extends UnicastRemoteObject implements Worker,
 	 * 
 	 * @author Donal Fellows
 	 */
-	private static class AsyncPrint extends Thread {
+	private static class PasswordWriterThread extends Thread {
 		private OutputStream to;
 		private char[] chars;
 
-		AsyncPrint(OutputStream to, char[] chars) {
-			this.to = to;
+		PasswordWriterThread(Process to, char[] chars) {
+			this.to = to.getOutputStream();
 			assert chars != null;
 			this.chars = chars;
 			setDaemon(true);
@@ -260,7 +262,7 @@ public class WorkerCore extends UnicastRemoteObject implements Worker,
 					new AsyncCopy(subprocess.getInputStream(), stdout);
 					new AsyncCopy(subprocess.getErrorStream(), stderr);
 					if (password != null)
-						new AsyncPrint(subprocess.getOutputStream(), password);
+						new PasswordWriterThread(subprocess, password);
 				} catch (IOException e) {
 					h.value = e;
 				}
@@ -371,21 +373,23 @@ public class WorkerCore extends UnicastRemoteObject implements Worker,
 				throw new IOException("input baclava file doesn't exist");
 		} else {
 			for (Entry<String, File> port : inputFiles.entrySet()) {
-				if (port.getValue() != null) {
-					pb.command().add("-inputfile");
-					pb.command().add(port.getKey());
-					pb.command().add(port.getValue().getAbsolutePath());
-					if (!port.getValue().exists())
-						throw new IOException("input file for port \"" + port
-								+ "\" doesn't exist");
-				}
+				if (port.getValue() == null)
+					continue;
+				pb.command().add("-inputfile");
+				pb.command().add(port.getKey());
+				pb.command().add(port.getValue().getAbsolutePath());
+				if (!port.getValue().exists())
+					throw new IOException("input file for port \"" + port
+							+ "\" doesn't exist");
 			}
 			for (Entry<String, String> port : inputValues.entrySet()) {
-				if (port.getValue() != null) {
-					pb.command().add("-inputvalue");
-					pb.command().add(port.getKey());
-					pb.command().add(port.getValue());
-				}
+				if (port.getValue() == null)
+					continue;
+				pb.command().add("-inputfile");
+				pb.command().add(port.getKey());
+				File f = createTempFile(".tav_in_", null, workingDir);
+				pb.command().add(f.getAbsolutePath());
+				write(f, port.getValue(), "UTF-8");
 			}
 		}
 
@@ -400,27 +404,20 @@ public class WorkerCore extends UnicastRemoteObject implements Worker,
 				throw new IOException("output baclava file exists");
 		} else {
 			File out = new File(workingDir, "out");
-			if (!out.mkdir()) {
+			if (!out.mkdir())
 				throw new IOException("failed to make output directory \"out\"");
-			}
-			if (!out.delete()) {
-				// Taverna needs the dir to *not* exist now
-				throw new IOException(
-						"failed to delete output directory \"out\"");
-			}
+			// Taverna needs the dir to *not* exist now
+			forceDelete(out);
 			pb.command().add("-outputdir");
 			pb.command().add(out.getAbsolutePath());
 		}
 
 		// Add an argument holding the workflow
-		workflowFile = createTempFile("taverna", ".t2flow");
-		Writer w = new OutputStreamWriter(new FileOutputStream(workflowFile),
-				"UTF-8");
-		try {
-			w.write(workflow);
-		} finally {
-			w.close();
-		}
+		workflowFile = createTempFile(".wf_", ".t2flow", workingDir);
+		write(workflowFile, workflow, "UTF-8");
+		if (!workflowFile.exists())
+			throw new IOException("failed to instantiate workflow file at "
+					+ workflowFile);
 		pb.command().add(workflowFile.getAbsolutePath());
 
 		// Indicate what working directory to use
@@ -493,10 +490,19 @@ public class WorkerCore extends UnicastRemoteObject implements Worker,
 		}
 	}
 
+	private JobUsageRecord newUR() throws DatatypeConfigurationException {
+		try {
+			if (wd != null)
+				return new JobUsageRecord(wd.getName());
+		} catch (RuntimeException e) {
+		}
+		return new JobUsageRecord("unknown");
+	}
+
 	private void buildUR(Status status) {
 		try {
 			Date now = new Date();
-			ur = new JobUsageRecord(wd.getName());
+			ur = newUR();
 			ur.addUser(System.getProperty("user.name"), null);
 			ur.addStartAndEnd(start, now);
 			ur.addWallDuration(now.getTime() - start.getTime());
@@ -585,10 +591,10 @@ public class WorkerCore extends UnicastRemoteObject implements Worker,
 			try {
 				JobUsageRecord toReturn;
 				if (subprocess == null) {
-					toReturn = new JobUsageRecord(wd.getName());
+					toReturn = newUR();
 					toReturn.setStatus(Held.toString());
 				} else if (ur == null) {
-					toReturn = new JobUsageRecord(wd.getName());
+					toReturn = newUR();
 					toReturn.setStatus(Started.toString());
 					toReturn.addStartAndEnd(start, new Date());
 					toReturn.addUser(System.getProperty("user.name"), null);
@@ -649,12 +655,12 @@ public class WorkerCore extends UnicastRemoteObject implements Worker,
 
 	@Override
 	public void deleteLocalResources() throws ImplementationException {
-		if (workflowFile != null)
-			try {
+		try {
+			if (workflowFile != null && workflowFile.getParentFile().exists())
 				forceDelete(workflowFile);
-			} catch (IOException e) {
-				throw new ImplementationException(
-						"problem deleting workflow file", e);
-			}
+		} catch (IOException e) {
+			throw new ImplementationException("problem deleting workflow file",
+					e);
+		}
 	}
 }

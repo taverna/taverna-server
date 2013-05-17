@@ -1,9 +1,9 @@
 /*
  * Copyright (C) 2010-2011 The University of Manchester
  * 
- * See the file "LICENSE.txt" for license terms.
+ * See the file "LICENSE" for license terms.
  */
-package org.taverna.server.master.localworker;
+package org.taverna.server.master.worker;
 
 import static java.lang.Integer.parseInt;
 import static java.util.Arrays.asList;
@@ -15,6 +15,7 @@ import java.io.ObjectOutputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -34,12 +35,12 @@ import org.taverna.server.master.utils.UsernamePrincipal;
  * @author Donal Fellows
  */
 public class RunDatabase implements RunStore, RunDBSupport {
-	private Log log = LogFactory.getLog("Taverna.Server.LocalWorker.RunDB");
-	private RunDatabaseDAO dao;
+	private Log log = LogFactory.getLog("Taverna.Server.Worker.RunDB");
+	RunDatabaseDAO dao;
 	private List<CompletionNotifier> notifier = new ArrayList<CompletionNotifier>();
 	private NotificationEngine notificationEngine;
 	@Autowired
-	private AbstractRemoteRunFactory factory;
+	private FactoryBean factory;
 
 	@Override
 	public void setNotifier(CompletionNotifier n) {
@@ -109,6 +110,14 @@ public class RunDatabase implements RunStore, RunDBSupport {
 	@Override
 	public TavernaRun getRun(UsernamePrincipal user, Policy p, String uuid)
 			throws UnknownRunException {
+		// Check first to see if the 'uuid' actually looks like a UUID; if
+		// not, throw it out immediately without logging an exception.
+		try {
+			UUID.fromString(uuid);
+		} catch (IllegalArgumentException e) {
+			log.debug("run ID does not look like UUID; rejecting...");
+			throw new UnknownRunException();
+		}
 		TavernaRun run = dao.get(uuid);
 		if (run != null && (user == null || p.permitAccess(user, run)))
 			return run;
@@ -203,7 +212,7 @@ public class RunDatabase implements RunStore, RunDBSupport {
 	}
 
 	@Override
-	public AbstractRemoteRunFactory getFactory() {
+	public FactoryBean getFactory() {
 		return factory;
 	}
 }

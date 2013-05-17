@@ -1,7 +1,7 @@
 /*
  * Copyright (C) 2011 The University of Manchester
  * 
- * See the file "LICENSE.txt" for license terms.
+ * See the file "LICENSE" for license terms.
  */
 package org.taverna.server.master.notification;
 
@@ -109,6 +109,7 @@ public class TwitterDispatcher extends RateLimitedDispatcher {
 	 * 
 	 * @author Donal Fellows
 	 */
+	@SuppressWarnings("serial")
 	public static class NotConfiguredException extends Exception {
 		NotConfiguredException() {
 			super("not configured with xAuth key and secret; "
@@ -121,6 +122,7 @@ public class TwitterDispatcher extends RateLimitedDispatcher {
 	 * 
 	 * @author Donal Fellows
 	 */
+	@SuppressWarnings("serial")
 	public static class NoCredentialsException extends Exception {
 		NoCredentialsException() {
 			super("no consumer key and secret present; "
