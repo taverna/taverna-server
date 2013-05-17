@@ -1,9 +1,10 @@
 /*
  * Copyright (C) 2010-2011 The University of Manchester
  * 
- * See the file "LICENSE.txt" for license terms.
+ * See the file "LICENSE" for license terms.
  */
-package org.taverna.server.master.localworker;
+package org.taverna.server.master.worker;
+
 
 /**
  * How to convert a notification about the completion of a job into a message.

@@ -1,7 +1,7 @@
 /*
  * Copyright (C) 2011 The University of Manchester
  * 
- * See the file "LICENSE.txt" for license terms.
+ * See the file "LICENSE" for license terms.
  */
 package org.taverna.server.master.localworker;
 
@@ -17,21 +17,15 @@ import org.springframework.context.annotation.Configuration;
  * @author Donal Fellows
  */
 @Configuration
-public class ConfigBean {
+public class LocalWorkerFactory {
 	@Bean(name = "localworker.factory")
 	AbstractRemoteRunFactory getLocalworkerFactory(
 			@Value("${backEndFactory}") String mode) throws Exception {
-		AbstractRemoteRunFactory factory;
-		if (mode == null)
+		if (mode == null || mode.isEmpty() || mode.startsWith("${"))
 			throw new Exception("no value for ${backEndFactory}");
-		if ("org.taverna.server.master.localworker.IdAwareForkRunFactory"
-				.equals(mode))
-			factory = new IdAwareForkRunFactory();
-		else if ("org.taverna.server.master.localworker.ForkRunFactory"
-				.equals(mode))
-			factory = new ForkRunFactory();
-		else
-			throw new Exception("unknown remote run factory: " + mode);
-		return factory;
+		Class<?> c = Class.forName(mode);
+		if (AbstractRemoteRunFactory.class.isAssignableFrom(c))
+			return (AbstractRemoteRunFactory) c.newInstance();
+		throw new Exception("unknown remote run factory: " + mode);
 	}
 }

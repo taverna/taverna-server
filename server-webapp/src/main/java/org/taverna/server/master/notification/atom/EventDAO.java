@@ -1,7 +1,7 @@
 /*
  * Copyright (C) 2011 The University of Manchester
  * 
- * See the file "LICENSE.txt" for license terms.
+ * See the file "LICENSE" for license terms.
  */
 package org.taverna.server.master.notification.atom;
 
@@ -140,6 +140,15 @@ public class EventDAO extends JDOSupport<AbstractEvent> implements
 		UsernamePrincipal owner = originator.getSecurityContext().getOwner();
 		UriBuilder ub = ubf.getRunUriBuilder(originator);
 		persist(new TerminationEvent(ub.build(), owner, messageSubject,
+				messageContent));
+	}
+
+	@WithinSingleTransaction
+	public void started(TavernaRun originator, String messageSubject,
+			String messageContent) {
+		UsernamePrincipal owner = originator.getSecurityContext().getOwner();
+		UriBuilder ub = ubf.getRunUriBuilder(originator);
+		persist(new CommencementEvent(ub.build(), owner, messageSubject,
 				messageContent));
 	}
 }

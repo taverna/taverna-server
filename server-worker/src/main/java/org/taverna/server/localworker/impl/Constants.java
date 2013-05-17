@@ -1,7 +1,7 @@
 /*
  * Copyright (C) 2013 The University of Manchester
  * 
- * See the file "LICENSE.txt" for license terms.
+ * See the file "LICENSE" for license terms.
  */
 package org.taverna.server.localworker.impl;
 
@@ -18,8 +18,7 @@ public interface Constants {
 	 * Subdirectories of the working directory to create by default.
 	 */
 	static final String[] SUBDIR_LIST = { "conf", "externaltool", "feed",
-			"interactions", "lib", "logs", "plugins", "repository",
-			"t2-database", "var" };
+			"interactions", "lib", "logs", "plugins", "repository", "var" };
 
 	/** The name of the default encoding for characters on this machine. */
 	static final String SYSTEM_ENCODING = defaultCharset().name();

@@ -1,7 +1,7 @@
 /*
  * Copyright (C) 2010-2011 The University of Manchester
  * 
- * See the file "LICENSE.txt" for license terms.
+ * See the file "LICENSE" for license terms.
  */
 package org.taverna.server.localworker.impl;
 
@@ -34,6 +34,7 @@ import edu.umd.cs.findbugs.annotations.NonNull;
  * @see FileDelegate
  */
 @edu.umd.cs.findbugs.annotations.SuppressWarnings("SE_NO_SERIALVERSIONID")
+@SuppressWarnings("serial")
 public class DirectoryDelegate extends UnicastRemoteObject implements
 		RemoteDirectory {
 	private File dir;

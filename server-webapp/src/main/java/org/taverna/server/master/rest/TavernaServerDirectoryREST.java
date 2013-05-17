@@ -1,7 +1,7 @@
 /*
  * Copyright (C) 2010-2011 The University of Manchester
  * 
- * See the file "LICENSE.txt" for license terms.
+ * See the file "LICENSE" for license terms.
  */
 package org.taverna.server.master.rest;
 
@@ -17,6 +17,7 @@ import javax.annotation.security.RolesAllowed;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
+import javax.ws.rs.OPTIONS;
 import javax.ws.rs.POST;
 import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
@@ -62,6 +63,12 @@ public interface TavernaServerDirectoryREST {
 	@NonNull
 	DirectoryContents getDescription(@NonNull @Context UriInfo ui)
 			throws FilesystemAccessException;
+
+	/** Get an outline of the operations supported. */
+	@OPTIONS
+	@Path("{path:.*}")
+	@Description("Produces the description of the files/directories' baclava operations.")
+	Response options(@PathParam("path") List<PathSegment> path);
 
 	/**
 	 * Gets a description of the named entity in or beneath the working
@@ -210,6 +217,7 @@ public interface TavernaServerDirectoryREST {
 	 * 
 	 * @author Donal Fellows
 	 */
+	@SuppressWarnings("serial")
 	public static class NegotiationFailedException extends Exception {
 		public List<Variant> accepted;
 

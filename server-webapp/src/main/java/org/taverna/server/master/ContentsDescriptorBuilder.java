@@ -1,7 +1,7 @@
 /*
  * Copyright (C) 2010-2011 The University of Manchester
  * 
- * See the file "LICENSE.txt" for license terms.
+ * See the file "LICENSE" for license terms.
  */
 package org.taverna.server.master;
 
@@ -161,12 +161,22 @@ public class ContentsDescriptorBuilder {
 			UriBuilder ub, OutputDescription descriptor)
 			throws FilesystemAccessException, NoDirectoryEntryException,
 			XPathExpressionException {
-		Collection<DirectoryEntry> outs = fileUtils.getDirectory(run, "out")
-				.getContents();
+		Collection<DirectoryEntry> outs = null;
+		try {
+			outs = fileUtils.getDirectory(run, "out").getContents();
+		} catch (FilesystemAccessException e) {
+			log.warn("unexpected failure in construction of output descriptor",
+					e);
+		} catch (NoDirectoryEntryException e) {
+			log.warn("unexpected failure in construction of output descriptor",
+					e);
+		}
 		for (Element output : outputPorts(dataflow)) {
 			OutputPort p = descriptor.addPort(portName(output));
-			p.output = constructValue(outs, ub, p.name);
-			p.depth = computeDepth(p.output);
+			if (outs != null) {
+				p.output = constructValue(outs, ub, p.name);
+				p.depth = computeDepth(p.output);
+			}
 		}
 	}
 

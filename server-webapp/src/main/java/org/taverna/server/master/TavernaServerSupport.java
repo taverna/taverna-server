@@ -1,7 +1,7 @@
 /*
  * Copyright (C) 2010-2011 The University of Manchester
  * 
- * See the file "LICENSE.txt" for license terms.
+ * See the file "LICENSE" for license terms.
  */
 package org.taverna.server.master;
 
@@ -30,6 +30,7 @@ import javax.xml.bind.JAXBException;
 
 import org.apache.commons.logging.Log;
 import org.springframework.beans.factory.annotation.Required;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.jmx.export.annotation.ManagedAttribute;
 import org.springframework.jmx.export.annotation.ManagedMetric;
 import org.springframework.jmx.export.annotation.ManagedResource;
@@ -37,6 +38,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.taverna.server.master.common.Permission;
+import org.taverna.server.master.common.VersionedElement;
 import org.taverna.server.master.common.Workflow;
 import org.taverna.server.master.exceptions.FilesystemAccessException;
 import org.taverna.server.master.exceptions.NoCreateException;
@@ -165,6 +167,15 @@ public class TavernaServerSupport {
 	@ManagedAttribute(description = "Whether to permit any new workflow runs to be created; has no effect on existing runs.")
 	public void setAllowNewWorkflowRuns(boolean allowNewWorkflowRuns) {
 		stateModel.setAllowNewWorkflowRuns(allowNewWorkflowRuns);
+	}
+
+	/**
+	 * @return The server's version identifier.
+	 */
+	@ManagedAttribute(description = "The installed version of the server.")
+	public String getServerVersion() {
+		return VersionedElement.VERSION + " " + VersionedElement.REVISION + " "
+				+ VersionedElement.TIMESTAMP;
 	}
 
 	public int getMaxSimultaneousRuns() {
@@ -456,6 +467,8 @@ public class TavernaServerSupport {
 			doWrite = true;
 		case Read:
 			doRead = true;
+		default:
+			break;
 		}
 
 		permSet = context.getPermittedReaders();

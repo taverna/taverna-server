@@ -1,7 +1,7 @@
 /*
  * Copyright (C) 2011-2012 The University of Manchester
  * 
- * See the file "LICENSE.txt" for license terms.
+ * See the file "LICENSE" for license terms.
  */
 package org.taverna.server.master.common;
 
@@ -30,6 +30,7 @@ import edu.umd.cs.findbugs.annotations.NonNull;
  */
 @XmlType(name = "CredentialDescriptor")
 @XmlSeeAlso({ Credential.KeyPair.class, Credential.Password.class })
+@SuppressWarnings("serial")
 public abstract class Credential implements Serializable {
 	/** The location of this descriptor in the REST world. */
 	@XmlAttribute(namespace = XLINK)

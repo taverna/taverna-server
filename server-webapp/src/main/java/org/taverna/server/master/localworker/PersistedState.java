@@ -1,7 +1,7 @@
 /*
- * Copyright (C) 2010-2011 The University of Manchester
+ * Copyright (C) 2010-2013 The University of Manchester
  * 
- * See the file "LICENSE.txt" for license terms.
+ * See the file "LICENSE" for license terms.
  */
 package org.taverna.server.master.localworker;
 
@@ -9,10 +9,17 @@ import javax.jdo.annotations.PersistenceCapable;
 import javax.jdo.annotations.Persistent;
 import javax.jdo.annotations.PrimaryKey;
 
-@PersistenceCapable
-class LocalWorkerManagementState {
-	static LocalWorkerManagementState makeInstance() {
-		LocalWorkerManagementState o = new LocalWorkerManagementState();
+/**
+ * The actual database connector for persisted local worker state.
+ * 
+ * @author Donal Fellows
+ */
+// WARNING! If you change the name of this class, update persistence.xml as
+// well!
+@PersistenceCapable(table = "LOCALWORKERSTATE__PERSISTEDSTATE")
+class PersistedState implements LocalWorkerModel {
+	static PersistedState makeInstance() {
+		PersistedState o = new PersistedState();
 		o.ID = KEY;
 		return o;
 	}
@@ -51,212 +58,142 @@ class LocalWorkerManagementState {
 	@Persistent
 	private int operatingLimit;
 
-	/**
-	 * @param defaultLifetime
-	 *            how long a workflow run should live by default, in minutes.
-	 */
+	@Override
 	public void setDefaultLifetime(int defaultLifetime) {
 		this.defaultLifetime = defaultLifetime;
 	}
 
-	/**
-	 * @return how long a workflow run should live by default, in minutes.
-	 */
+	@Override
 	public int getDefaultLifetime() {
 		return defaultLifetime;
 	}
 
-	/**
-	 * @param maxRuns
-	 *            the maxRuns to set
-	 */
+	@Override
 	public void setMaxRuns(int maxRuns) {
 		this.maxRuns = maxRuns;
 	}
 
-	/**
-	 * @return the maxRuns
-	 */
+	@Override
 	public int getMaxRuns() {
 		return maxRuns;
 	}
 
-	/**
-	 * @param factoryProcessNamePrefix
-	 *            the factoryProcessNamePrefix to set
-	 */
+	@Override
 	public void setFactoryProcessNamePrefix(String factoryProcessNamePrefix) {
 		this.factoryProcessNamePrefix = factoryProcessNamePrefix;
 	}
 
-	/**
-	 * @return the factoryProcessNamePrefix
-	 */
+	@Override
 	public String getFactoryProcessNamePrefix() {
 		return factoryProcessNamePrefix;
 	}
 
-	/**
-	 * @param executeWorkflowScript
-	 *            the executeWorkflowScript to set
-	 */
+	@Override
 	public void setExecuteWorkflowScript(String executeWorkflowScript) {
 		this.executeWorkflowScript = executeWorkflowScript;
 	}
 
-	/**
-	 * @return the executeWorkflowScript
-	 */
+	@Override
 	public String getExecuteWorkflowScript() {
 		return executeWorkflowScript;
 	}
 
-	/**
-	 * @param extraArgs
-	 *            the extraArgs to set
-	 */
+	@Override
 	public void setExtraArgs(String[] extraArgs) {
 		this.extraArgs = extraArgs;
 	}
 
-	/**
-	 * @return the extraArgs
-	 */
+	@Override
 	public String[] getExtraArgs() {
 		return extraArgs;
 	}
 
-	/**
-	 * @param waitSeconds
-	 *            the waitSeconds to set
-	 */
+	@Override
 	public void setWaitSeconds(int waitSeconds) {
 		this.waitSeconds = waitSeconds;
 	}
 
-	/**
-	 * @return the waitSeconds
-	 */
+	@Override
 	public int getWaitSeconds() {
 		return waitSeconds;
 	}
 
-	/**
-	 * @param sleepMS
-	 *            the sleepMS to set
-	 */
+	@Override
 	public void setSleepMS(int sleepMS) {
 		this.sleepMS = sleepMS;
 	}
 
-	/**
-	 * @return the sleepMS
-	 */
+	@Override
 	public int getSleepMS() {
 		return sleepMS;
 	}
 
-	/**
-	 * @param serverWorkerJar
-	 *            the serverWorkerJar to set
-	 */
+	@Override
 	public void setServerWorkerJar(String serverWorkerJar) {
 		this.serverWorkerJar = serverWorkerJar;
 	}
 
-	/**
-	 * @return the serverWorkerJar
-	 */
+	@Override
 	public String getServerWorkerJar() {
 		return serverWorkerJar;
 	}
 
-	/**
-	 * @param javaBinary
-	 *            the javaBinary to set
-	 */
+	@Override
 	public void setJavaBinary(String javaBinary) {
 		this.javaBinary = javaBinary;
 	}
 
-	/**
-	 * @return the javaBinary
-	 */
+	@Override
 	public String getJavaBinary() {
 		return javaBinary;
 	}
 
-	/**
-	 * @param registryPort
-	 *            the registryPort to set
-	 */
+	@Override
 	public void setRegistryPort(int registryPort) {
 		this.registryPort = registryPort;
 	}
 
-	/**
-	 * @return the registryPort
-	 */
+	@Override
 	public int getRegistryPort() {
 		return registryPort;
 	}
 
-	/**
-	 * @param registryHost
-	 *            the registryHost to set
-	 */
+	@Override
 	public void setRegistryHost(String registryHost) {
 		this.registryHost = registryHost;
 	}
 
-	/**
-	 * @return the registryHost
-	 */
+	@Override
 	public String getRegistryHost() {
 		return registryHost;
 	}
 
-	/**
-	 * @param serverForkerJar
-	 *            the serverForkerJar to set
-	 */
+	@Override
 	public void setServerForkerJar(String serverForkerJar) {
 		this.serverForkerJar = serverForkerJar;
 	}
 
-	/**
-	 * @return the serverForkerJar
-	 */
+	@Override
 	public String getServerForkerJar() {
 		return serverForkerJar;
 	}
 
-	/**
-	 * @param passwordFile
-	 *            the passwordFile to set
-	 */
+	@Override
 	public void setPasswordFile(String passwordFile) {
 		this.passwordFile = passwordFile;
 	}
 
-	/**
-	 * @return the passwordFile
-	 */
+	@Override
 	public String getPasswordFile() {
 		return passwordFile;
 	}
 
-	/**
-	 * @param operatingLimit
-	 *            the operatingLimit to set
-	 */
+	@Override
 	public void setOperatingLimit(int operatingLimit) {
 		this.operatingLimit = operatingLimit;
 	}
 
-	/**
-	 * @return the operatingLimit
-	 */
+	@Override
 	public int getOperatingLimit() {
 		return operatingLimit;
 	}

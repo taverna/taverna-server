@@ -1,7 +1,7 @@
 /*
  * Copyright (C) 2011 The University of Manchester
  * 
- * See the file "LICENSE.txt" for license terms.
+ * See the file "LICENSE" for license terms.
  */
 package org.taverna.server.master.notification.atom;
 
@@ -25,6 +25,7 @@ import org.taverna.server.master.utils.UsernamePrincipal;
 @PersistenceCapable
 @XmlType(name = "TerminationEvent", propOrder = {})
 @XmlRootElement
+@SuppressWarnings("serial")
 public class TerminationEvent extends AbstractEvent {
 	/**
 	 * Initialize a termination event for a workflow run.
@@ -40,7 +41,7 @@ public class TerminationEvent extends AbstractEvent {
 	 */
 	public TerminationEvent(URI workflowLink, UsernamePrincipal owner,
 			String title, String message) {
-		super("termination");
+		super("finish");
 		this.owner = owner.getName();
 		this.title = title;
 		this.message = message;

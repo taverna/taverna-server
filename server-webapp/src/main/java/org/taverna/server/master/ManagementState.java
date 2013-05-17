@@ -1,7 +1,7 @@
 /*
  * Copyright (C) 2010-2011 The University of Manchester
  * 
- * See the file "LICENSE.txt" for license terms.
+ * See the file "LICENSE" for license terms.
  */
 package org.taverna.server.master;
 
@@ -138,6 +138,7 @@ class ManagementState extends JDOSupport<WebappState> implements
 	}
 }
 
+//WARNING! If you change the name of this class, update persistence.xml as well!
 @PersistenceCapable(table = "MANAGEMENTSTATE__WEBAPPSTATE")
 class WebappState implements ManagementModel {
 	public WebappState() {

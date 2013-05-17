@@ -1,7 +1,7 @@
 /*
  * Copyright (C) 2010-2011 The University of Manchester
  * 
- * See the file "LICENSE.txt" for license terms.
+ * See the file "LICENSE" for license terms.
  */
 package org.taverna.server.master.common;
 
@@ -34,7 +34,7 @@ public abstract class VersionedElement {
 	/** When was the server built? */
 	@XmlAttribute(namespace = SERVER)
 	public String serverBuildTimestamp;
-	static final String VERSION, REVISION, TIMESTAMP;
+	public static final String VERSION, REVISION, TIMESTAMP;
 	static {
 		Log log = getLog("Taverna.Server.Webapp");
 		Properties p = new Properties();

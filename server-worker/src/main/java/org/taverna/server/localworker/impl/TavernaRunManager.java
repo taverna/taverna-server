@@ -1,7 +1,7 @@
 /*
  * Copyright (C) 2010-2011 The University of Manchester
  * 
- * See the file "LICENSE.txt" for license terms.
+ * See the file "LICENSE" for license terms.
  */
 package org.taverna.server.localworker.impl;
 
@@ -57,6 +57,7 @@ import edu.umd.cs.findbugs.annotations.SuppressWarnings;
  * @see LocalWorker
  */
 @SuppressWarnings({ "SE_BAD_FIELD", "SE_NO_SERIALVERSIONID" })
+@java.lang.SuppressWarnings("serial")
 public class TavernaRunManager extends UnicastRemoteObject implements
 		RemoteRunFactory, RunAccounting, WorkerFactory {
 	DocumentBuilderFactory dbf;

@@ -1,11 +1,11 @@
 /*
- * Copyright (C) 2010-2011 The University of Manchester
+ * Copyright (C) 2010-2013 The University of Manchester
  * 
- * See the file "LICENSE.txt" for license terms.
+ * See the file "LICENSE" for license terms.
  */
-package org.taverna.server.master.localworker;
+package org.taverna.server.master.worker;
 
-import static org.taverna.server.master.localworker.RunConnection.toDBform;
+import static org.taverna.server.master.worker.RunConnection.toDBform;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -37,7 +37,7 @@ public class RunDatabaseDAO extends JDOSupport<RunConnection> {
 		super(RunConnection.class);
 	}
 
-	private Log log = LogFactory.getLog("Taverna.Server.LocalWorker.RunDB");
+	private Log log = LogFactory.getLog("Taverna.Server.Worker.RunDB");
 	private RunDatabase facade;
 
 	@Required
@@ -78,6 +78,12 @@ public class RunDatabaseDAO extends JDOSupport<RunConnection> {
 			log.warn("problem in fetch", e);
 			throw e;
 		}
+	}
+
+	@WithinSingleTransaction
+	public String getSecurityToken(String name) {
+		RunConnection rc = getById(name);
+		return rc.getSecurityToken();
 	}
 
 	private void persist(RemoteRunDelegate rrd) throws IOException {

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Copyright (C) 2010-2012 The University of Manchester See the file "LICENSE.txt" 
+<!-- Copyright (C) 2010-2012 The University of Manchester See the file "LICENSE" 
 	for license terms. -->
 <beans xmlns="http://www.springframework.org/schema/beans"
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
@@ -49,7 +49,7 @@
 		<security:intercept-url pattern="/admin/**"
 			requires-channel="any" access="hasRole('ROLE_tavernasuperuser')" />
 		<security:intercept-url pattern="/rest/**"
-			requires-channel="any" access="hasRole('ROLE_tavernauser')" />
+			requires-channel="any" access="hasAnyRole('ROLE_tavernauser','ROLE_tavernaworkflow')" />
 		<security:intercept-url pattern="/feed"
 			requires-channel="any" access="hasRole('ROLE_tavernauser')" />
 		<security:intercept-url pattern="/feed/**"
@@ -58,14 +58,10 @@
 	<bean class="org.taverna.server.master.common.Uri.Rewriter"
 		autowire="byType" id="URI-Rewriter-Thunk">
 		<property name="suppressSecurity" value="true" />
+		<property name="rewriteTarget" value="${default.webapp}" />
 	</bean>
 	<security:authentication-manager>
-		<security:authentication-provider>
-			<security:user-service id="users">
-				<security:user name="taverna"
-					authorities="ROLE_tavernauser,ROLE_tavernasuperuser"
-					password="taverna" />
-			</security:user-service>
-		</security:authentication-provider>
+		<security:authentication-provider ref="workflowInternalAuthProvder" />
+		<security:authentication-provider ref="authProvider" />
 	</security:authentication-manager>
 </beans>
