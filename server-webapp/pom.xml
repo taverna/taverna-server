@@ -558,6 +558,7 @@
 									<groupId>net.sf.taverna.t2</groupId>
 									<artifactId>taverna-commandline</artifactId>
 									<version>${version.commandline}</version>
+									<classifier>bin</classifier>
 									<type>zip</type>
 									<outputDirectory>${util.dir}</outputDirectory>
 								</artifactItem>

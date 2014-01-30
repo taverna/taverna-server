@@ -556,6 +556,8 @@ class SecureFork implements IdAwareForkRunFactory.MetaFactory {
 				lastException = e;
 			}
 		}
+		if (lastException==null)
+			throw new InterruptedException();
 		throw lastException;
 	}
 
