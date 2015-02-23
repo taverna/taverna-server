@@ -52,32 +52,48 @@ public class Workflow implements Serializable,Externalizable {
 	@XmlAnyElement(lax = true)
 	public Element[] content;
 
-	private static Marshaller marshaller;
-	private static Unmarshaller unmarshaller;
+	private static final JAXBContext context;
 	private final static String ENCODING = "UTF-8"; 
 	static {
+		JAXBContext c = null;
 		try {
-			JAXBContext context = JAXBContext.newInstance(Workflow.class);
-			marshaller = context.createMarshaller();
-			unmarshaller = context.createUnmarshaller();
-			marshaller.setProperty(JAXB_ENCODING, ENCODING);
-			marshaller.setProperty(JAXB_FORMATTED_OUTPUT, false);
+			c = JAXBContext.newInstance(Workflow.class);
 		} catch (JAXBException e) {
 			getLog("Taverna.Server.Webapp").fatal(
 					"failed to build JAXB context for working with "
 							+ Workflow.class, e);
 		}
+		context = c;
+	}
+
+	/**
+	 * Instantiate an unmarshaller. Needs to be done per use because of
+	 * thread-safety issues.
+	 */
+	private static Unmarshaller unmarshaller() throws JAXBException {
+		return context.createUnmarshaller();
+	}
+
+	/**
+	 * Instantiate a marshaller. Needs to be done per use because of
+	 * thread-safety issues.
+	 */
+	private Marshaller marshaller() throws JAXBException {
+		Marshaller marshaller = context.createMarshaller();
+		marshaller.setProperty(JAXB_ENCODING, ENCODING);
+		marshaller.setProperty(JAXB_FORMATTED_OUTPUT, false);
+		return marshaller;
 	}
 
 	public static Workflow unmarshal(String representation)
 			throws JAXBException {
 		StringReader sr = new StringReader(representation);
-		return (Workflow) unmarshaller.unmarshal(sr);
+		return (Workflow) unmarshaller().unmarshal(sr);
 	}
 
 	public String marshal() throws JAXBException {
 		StringWriter sw = new StringWriter();
-		marshaller.marshal(this, sw);
+		marshaller().marshal(this, sw);
 		return sw.toString();
 	}
 
@@ -85,6 +101,7 @@ public class Workflow implements Serializable,Externalizable {
 	public void readExternal(ObjectInput in) throws IOException,
 			ClassNotFoundException {
 		try {
+			Unmarshaller unmarshaller = unmarshaller();
 			int len = in.readInt();
 			byte[] bytes = new byte[len];
 			in.readFully(bytes);
@@ -104,6 +121,7 @@ public class Workflow implements Serializable,Externalizable {
 	public void writeExternal(ObjectOutput out) throws IOException {
 		try {
 			ByteArrayOutputStream baos = new ByteArrayOutputStream();
+			Marshaller marshaller = marshaller();
 			try (OutputStreamWriter w = new OutputStreamWriter(
 					new DeflaterOutputStream(baos), ENCODING)) {
 				marshaller.marshal(this, w);
