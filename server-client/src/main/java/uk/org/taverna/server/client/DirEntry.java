@@ -33,6 +33,13 @@ public abstract class DirEntry extends Connected {
 		return bits[bits.length - 1];
 	}
 
+	public String getName() {
+		return localName();
+	}
+	public String getPath() {
+		return path;
+	}
+
 	String concat(String name) {
 		return path + "/" + name.split("/", 2)[0];
 	}

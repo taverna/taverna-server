@@ -82,7 +82,7 @@ public class Run extends Connected {
 	}
 
 	public void setStatus(Status status) {
-		run.status().putTextPlain(status, String.class);
+		run.status().putTextPlain(status.name(), String.class);
 	}
 
 	public void start() {
