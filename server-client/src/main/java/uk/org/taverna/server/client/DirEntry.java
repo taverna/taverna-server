@@ -4,8 +4,6 @@ import java.lang.reflect.Field;
 import java.net.URI;
 import java.util.Map;
 
-import javax.ws.rs.core.UriBuilder;
-
 import org.glassfish.jersey.uri.internal.JerseyUriBuilder;
 import org.taverna.server.client.wadl.TavernaServer.Root.RunsRunName.Wd.Path;
 import org.taverna.server.client.wadl.TavernaServer.Root.RunsRunName.Wd.Path2;
@@ -23,8 +21,52 @@ public abstract class DirEntry extends Connected {
 	final Path2 path2;
 	final Path3 path3;
 
+	static {
+		for (Field ff : JerseyUriBuilder.class.getDeclaredFields())
+			ff.setAccessible(true);
+		for (Class<?> c : new Class[] { Path.class, Path2.class, Path3.class })
+			try {
+				c.getDeclaredField("_uriBuilder").setAccessible(true);
+			} catch (SecurityException | NoSuchFieldException e) {
+				throw new RuntimeException("failed to install UriBuilder", e);
+			}
+	}
+
 	private static String trim(String path) {
 		return path.replaceFirst("/+$", "").replaceFirst("^/+", "");
+	}
+
+	// This is so AWFUL! This is all just so that we can force the path to be
+	// built without encoding the slashes in it.
+	private void hackTheUB(Object path) throws IllegalAccessException,
+			NoSuchFieldException {
+		class HackedUriBuilder extends JerseyUriBuilder {
+			@Override
+			public URI buildFromMap(Map<String, ?> values) {
+				return buildFromMap(values, false);
+			}
+
+			@Override
+			public JerseyUriBuilder clone() {
+				HackedUriBuilder ub = new HackedUriBuilder();
+				try {
+					ub.copyFields(this);
+				} catch (IllegalAccessException e) {
+					throw new RuntimeException("failed to clone UriBuilder", e);
+				}
+				return ub;
+			}
+
+			void copyFields(JerseyUriBuilder source)
+					throws IllegalAccessException {
+				for (Field field : JerseyUriBuilder.class.getDeclaredFields())
+					field.set(this, field.get(source));
+			}
+		}
+		HackedUriBuilder ub = new HackedUriBuilder();
+		Field uriBuilderField = path.getClass().getDeclaredField("_uriBuilder");
+		ub.copyFields((JerseyUriBuilder) uriBuilderField.get(path));
+		uriBuilderField.set(path, ub);
 	}
 
 	protected DirEntry(Run run, String path) {
@@ -33,25 +75,11 @@ public abstract class DirEntry extends Connected {
 		path1 = run.run.wd().path(this.path);
 		path2 = run.run.wd().path2(this.path);
 		path3 = run.run.wd().path3(this.path);
-		UriBuilder ub = new JerseyUriBuilder() {
-			@Override
-			public URI buildFromMap(Map<String, ?> values) {
-				return buildFromMap(values, false);
-			}
-		};
 		try {
-			Field f;
-			f = path1.getClass().getDeclaredField("_uriBuilder");
-			f.setAccessible(true);
-			f.set(path1, ub);
-			f = path2.getClass().getDeclaredField("_uriBuilder");
-			f.setAccessible(true);
-			f.set(path2, ub);
-			f = path3.getClass().getDeclaredField("_uriBuilder");
-			f.setAccessible(true);
-			f.set(path3, ub);
-		} catch (SecurityException | NoSuchFieldException
-				| IllegalArgumentException | IllegalAccessException e) {
+			hackTheUB(path1);
+			hackTheUB(path2);
+			hackTheUB(path3);
+		} catch (NoSuchFieldException | IllegalAccessException e) {
 			throw new RuntimeException("failed to install UriBuilder", e);
 		}
 	}
