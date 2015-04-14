@@ -23,20 +23,13 @@ public abstract class DirEntry extends Connected {
 		return path.replaceFirst("/+$", "").replaceFirst("^/+", "");
 	}
 
-	private static List<String> elements(String path) {
-		return Arrays.asList(trim(path).split("/"));
-	}
-
 	protected DirEntry(Run run, String path) {
 		this.run = run;
 		this.path = trim(path);
-		List<String> elems = elements(path);
-		path1 = run.run.wd().path("");
-		path1.setPath(elems);
-		path2 = run.run.wd().path2("");
-		path2.setPath(elems);
-		path3 = run.run.wd().path3("");
-		path3.setPath(elems);
+		List<String> elems = Arrays.asList(this.path.split("/"));
+		path1 = run.run.wd().path("").setPath(elems);
+		path2 = run.run.wd().path2("").setPath(elems);
+		path3 = run.run.wd().path3("").setPath(elems);
 	}
 
 	public void delete() throws ClientException, ServerException {
