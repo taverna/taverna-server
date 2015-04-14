@@ -7,6 +7,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
@@ -135,8 +136,12 @@ public class Run extends Connected {
 		return run.input().expected().getAsInputDescriptionXml().getInput();
 	}
 
-	public List<OutputPort> getOutputs() {
-		return run.output().getAsOutputDescriptionXml().getOutput();
+	public List<Output> getOutputs() {
+		List<Output> outs = new ArrayList<>();
+		for (OutputPort op : run.output().getAsOutputDescriptionXml()
+				.getOutput())
+			outs.add(new Output(this, op));
+		return outs;
 	}
 
 	public void setInput(String name, String value) {
@@ -175,6 +180,32 @@ public class Run extends Connected {
 
 	public Directory getWorkingDirectory() {
 		return new Directory(this);
+	}
+
+	/**
+	 * Get a directory by name. Note that the directory should already exist or
+	 * this will lead to errors later.
+	 * 
+	 * @param name
+	 *            The path name to the directory in the server's abstract naming
+	 *            space.
+	 * @return The directory handle.
+	 */
+	public Directory getDirectory(String name) {
+		return new Directory(this, name);
+	}
+
+	/**
+	 * Get a file by name. Note that the file should already exist or this may
+	 * lead to errors later.
+	 * 
+	 * @param name
+	 *            The path name to the file in the server's abstract naming
+	 *            space.
+	 * @return The file handle.
+	 */
+	public File getFile(String name) {
+		return new File(this, name);
 	}
 
 	public String getOwner() {

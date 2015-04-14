@@ -1,3 +1,4 @@
+<?xml version="1.0"?>
 <application xmlns="http://wadl.dev.java.net/2009/02"
 	xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:prefix1="http://ns.taverna.org.uk/2010/xml/server/rest/"
 	xmlns:prefix3="http://ns.taverna.org.uk/2010/xml/server/"
@@ -240,12 +241,6 @@
             </xs:extension>
         </xs:complexContent>
     </xs:complexType>
-    <xs:complexType final="extension restriction" name="Credential">
-        <xs:choice>
-            <xs:element ref="ts:keypair"/>
-            <xs:element ref="ts:userpass"/>
-        </xs:choice>
-    </xs:complexType>
     <xs:complexType name="DirectoryContents">
         <xs:sequence>
             <xs:choice maxOccurs="unbounded" minOccurs="0">
@@ -271,25 +266,6 @@
             <xs:extension base="ts-rest:FilesystemCreationOperation"/>
         </xs:simpleContent>
     </xs:complexType>
-    <xs:complexType name="permissionsDescription">
-        <xs:complexContent>
-            <xs:extension base="ts:VersionedElement">
-                <xs:sequence>
-                    <xs:element maxOccurs="unbounded" minOccurs="0" name="permission" type="ts-rest:linkedPermissionDescription"/>
-                </xs:sequence>
-            </xs:extension>
-        </xs:complexContent>
-    </xs:complexType>
-    <xs:complexType name="linkedPermissionDescription">
-        <xs:complexContent>
-            <xs:extension base="ts:Location">
-                <xs:sequence>
-                    <xs:element minOccurs="0" name="userName" type="xs:string"/>
-                    <xs:element minOccurs="0" name="permission" type="ts:Permission"/>
-                </xs:sequence>
-            </xs:extension>
-        </xs:complexContent>
-    </xs:complexType>
     <xs:complexType final="extension restriction" name="trustList">
         <xs:complexContent>
             <xs:extension base="ts:VersionedElement">
@@ -299,11 +275,20 @@
             </xs:extension>
         </xs:complexContent>
     </xs:complexType>
-    <xs:complexType name="permissionDescription">
-        <xs:sequence>
-            <xs:element minOccurs="0" name="userName" type="xs:string"/>
-            <xs:element minOccurs="0" name="permission" type="ts:Permission"/>
-        </xs:sequence>
+    <xs:complexType final="extension restriction" name="credentialList">
+        <xs:complexContent>
+            <xs:extension base="ts:VersionedElement">
+                <xs:sequence>
+                    <xs:element maxOccurs="unbounded" minOccurs="0" ref="ts-rest:credential"/>
+                </xs:sequence>
+            </xs:extension>
+        </xs:complexContent>
+    </xs:complexType>
+    <xs:complexType final="extension restriction" name="Credential">
+        <xs:choice>
+            <xs:element ref="ts:keypair"/>
+            <xs:element ref="ts:userpass"/>
+        </xs:choice>
     </xs:complexType>
     <xs:complexType final="extension restriction" name="SecurityDescriptor">
         <xs:complexContent>
@@ -329,11 +314,27 @@
         </xs:sequence>
         <xs:attribute ref="xlink:href"/>
     </xs:complexType>
-    <xs:complexType final="extension restriction" name="credentialList">
+    <xs:complexType name="permissionDescription">
+        <xs:sequence>
+            <xs:element minOccurs="0" name="userName" type="xs:string"/>
+            <xs:element minOccurs="0" name="permission" type="ts:Permission"/>
+        </xs:sequence>
+    </xs:complexType>
+    <xs:complexType name="permissionsDescription">
         <xs:complexContent>
             <xs:extension base="ts:VersionedElement">
                 <xs:sequence>
-                    <xs:element maxOccurs="unbounded" minOccurs="0" ref="ts-rest:credential"/>
+                    <xs:element maxOccurs="unbounded" minOccurs="0" name="permission" type="ts-rest:linkedPermissionDescription"/>
+                </xs:sequence>
+            </xs:extension>
+        </xs:complexContent>
+    </xs:complexType>
+    <xs:complexType name="linkedPermissionDescription">
+        <xs:complexContent>
+            <xs:extension base="ts:Location">
+                <xs:sequence>
+                    <xs:element minOccurs="0" name="userName" type="xs:string"/>
+                    <xs:element minOccurs="0" name="permission" type="ts:Permission"/>
                 </xs:sequence>
             </xs:extension>
         </xs:complexContent>
@@ -352,6 +353,13 @@
     <xs:attribute name="type" type="xs:string"/>
 </xs:schema>
 <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns="http://www.w3.org/1999/xlink" attributeFormDefault="unqualified" elementFormDefault="unqualified" targetNamespace="http://www.w3.org/1999/xlink" jxb:version="2.1">
+    <xs:annotation>
+    	<xs:appinfo>
+			<jxb:schemaBindings>
+				<jxb:package name="uk.org.taverna.server.client.generic.link" />
+			</jxb:schemaBindings>
+    	</xs:appinfo>
+    </xs:annotation>
     <xs:attribute name="href" type="xs:string"/>
 </xs:schema>
 <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:port="http://ns.taverna.org.uk/2010/port/" xmlns:run="http://ns.taverna.org.uk/2010/run/" xmlns:tns="http://ns.taverna.org.uk/2010/port/" xmlns:xlink="http://www.w3.org/1999/xlink" attributeFormDefault="qualified" elementFormDefault="qualified" targetNamespace="http://ns.taverna.org.uk/2010/port/" jxb:version="2.1">
