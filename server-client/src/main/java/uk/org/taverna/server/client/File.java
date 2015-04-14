@@ -13,7 +13,6 @@ import java.io.OutputStream;
 import java.nio.charset.Charset;
 
 import org.apache.tika.mime.MimeTypeException;
-import org.taverna.server.client.wadl.TavernaServer.Root.RunsRunName.Wd;
 
 import uk.org.taverna.server.client.TavernaServer.ClientException;
 import uk.org.taverna.server.client.TavernaServer.ServerException;
@@ -23,31 +22,26 @@ import com.sun.jersey.api.client.ClientResponse;
 import com.sun.jersey.api.client.UniformInterfaceException;
 
 public class File extends DirEntry {
-	private final Wd wd;
-
 	File(Run run, String path) {
 		super(run, path);
-		wd = run.run.wd();
 	}
 
 	public InputStream getAsStream() {
-		return wd.path3(path).getAsOctetStream(InputStream.class);
+		return path3.getAsOctetStream(InputStream.class);
 	}
 
 	public byte[] get() {
-		return wd.path3(path).getAsOctetStream(byte[].class);
+		return path3.getAsOctetStream(byte[].class);
 	}
 
 	public String get(Charset encoding) {
-		return new String(wd.path3(path).getAsOctetStream(byte[].class),
-				encoding);
+		return new String(path3.getAsOctetStream(byte[].class), encoding);
 	}
 
 	public java.io.File getAsFile() throws ClientHandlerException,
 			UniformInterfaceException, IOException, MimeTypeException,
 			ClientException, ServerException {
-		ClientResponse cr = wd.path3(path).getAsOctetStream(
-				ClientResponse.class);
+		ClientResponse cr = path3.getAsOctetStream(ClientResponse.class);
 		checkError(cr);
 		String[] bits = localName().split("[.]");
 		String ext = getDefaultMimeTypes().forName(
@@ -64,31 +58,28 @@ public class File extends DirEntry {
 
 	public void setContents(byte[] newContents) throws ClientException,
 			ServerException {
-		checkError(wd.path(path).putOctetStreamAsXml(newContents,
-				ClientResponse.class));
+		checkError(path1.putOctetStreamAsXml(newContents, ClientResponse.class));
 	}
 
 	public void setContents(String newContents) throws ClientException,
 			ServerException {
-		checkError(wd.path(path).putOctetStreamAsXml(newContents,
-				ClientResponse.class));
+		checkError(path1.putOctetStreamAsXml(newContents, ClientResponse.class));
 	}
 
 	public void setContents(String newContents, Charset encoding)
 			throws ClientException, ServerException {
-		checkError(wd.path(path).putOctetStreamAsXml(
-				newContents.getBytes(encoding), ClientResponse.class));
+		checkError(path1.putOctetStreamAsXml(newContents.getBytes(encoding),
+				ClientResponse.class));
 	}
 
 	public void setContents(InputStream newContents) throws ClientException,
 			ServerException {
-		checkError(wd.path(path).putOctetStreamAsXml(newContents,
-				ClientResponse.class));
+		checkError(path1.putOctetStreamAsXml(newContents, ClientResponse.class));
 	}
 
 	public void setContents(java.io.File newContents) throws IOException,
 			ClientException, ServerException {
-		checkError(wd.path(path).putOctetStreamAsXml(
+		checkError(path1.putOctetStreamAsXml(
 				entity(newContents, APPLICATION_OCTET_STREAM_TYPE),
 				ClientResponse.class));
 	}
