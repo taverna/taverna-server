@@ -21,17 +21,6 @@ public abstract class DirEntry extends Connected {
 	final Path2 path2;
 	final Path3 path3;
 
-	static {
-		for (Field ff : JerseyUriBuilder.class.getDeclaredFields())
-			ff.setAccessible(true);
-		for (Class<?> c : new Class[] { Path.class, Path2.class, Path3.class })
-			try {
-				c.getDeclaredField("_uriBuilder").setAccessible(true);
-			} catch (SecurityException | NoSuchFieldException e) {
-				throw new RuntimeException("failed to install UriBuilder", e);
-			}
-	}
-
 	private static String trim(String path) {
 		return path.replaceFirst("/+$", "").replaceFirst("^/+", "");
 	}
@@ -59,12 +48,15 @@ public abstract class DirEntry extends Connected {
 
 			void copyFields(JerseyUriBuilder source)
 					throws IllegalAccessException {
-				for (Field field : JerseyUriBuilder.class.getDeclaredFields())
+				for (Field field : JerseyUriBuilder.class.getDeclaredFields()) {
+					field.setAccessible(true);
 					field.set(this, field.get(source));
+				}
 			}
 		}
 		HackedUriBuilder ub = new HackedUriBuilder();
 		Field uriBuilderField = path.getClass().getDeclaredField("_uriBuilder");
+		uriBuilderField.setAccessible(true);
 		ub.copyFields((JerseyUriBuilder) uriBuilderField.get(path));
 		uriBuilderField.set(path, ub);
 	}
