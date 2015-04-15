@@ -24,6 +24,8 @@ import com.sun.jersey.api.client.UniformInterfaceException;
 public class File extends DirEntry {
 	File(Run run, String path) {
 		super(run, path);
+		if (path.isEmpty())
+			throw new IllegalArgumentException("files must not have an empty name");
 	}
 
 	public InputStream getAsStream() {

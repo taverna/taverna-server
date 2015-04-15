@@ -118,7 +118,7 @@ public class TavernaServer extends Connected {
 			super(msg, cause);
 		}
 	}
-	static class ServerException extends Exception {
+	public static class ServerException extends Exception {
 		private static final long serialVersionUID = 1L;
 
 		ServerException(String msg, Throwable cause) {

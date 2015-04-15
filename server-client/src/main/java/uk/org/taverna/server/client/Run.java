@@ -125,15 +125,20 @@ public class Run extends Connected {
 	}
 
 	public void setGenerateRunBundle(boolean generateRunBundle) {
-		run.generateProvenance().putTextPlain(generateRunBundle, String.class);
+		run.generateProvenance().putTextPlain(
+				Boolean.toString(generateRunBundle), String.class);
 	}
 
 	public byte[] getRunBundle() {
 		return run.runBundle().getAsVndWf4everRobundleZip(byte[].class);
 	}
 
-	public List<InputPort> getInputs() {
-		return run.input().expected().getAsInputDescriptionXml().getInput();
+	public List<Input> getInputs() {
+		List<Input> ins = new ArrayList<>();
+		for (InputPort ip : run.input().expected().getAsInputDescriptionXml()
+				.getInput())
+			ins.add(new Input(this, ip));
+		return ins;
 	}
 
 	public List<Output> getOutputs() {
@@ -144,6 +149,11 @@ public class Run extends Connected {
 		return outs;
 	}
 
+	/**
+	 * @deprecated use {@link #getInputs()}.{@link Input#setValue(String)
+	 *             setValue()}
+	 */
+	@Deprecated
 	public void setInput(String name, String value) {
 		Value v = new Value();
 		v.setValue(value);
@@ -152,6 +162,11 @@ public class Run extends Connected {
 		run.input().inputName(name).putXmlAsInputDescription(idesc);
 	}
 
+	/**
+	 * @deprecated use {@link #getInputs()}.{@link Input#setValue(String,char)
+	 *             setValue()}
+	 */
+	@Deprecated
 	public void setInput(String name, String value, char listSeparator) {
 		Value v = new Value();
 		v.setValue(value);
