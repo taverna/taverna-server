@@ -499,6 +499,7 @@
 		class="org.taverna.server.master.identity.WorkflowInternalAuthProvider">
 		<property name="dao" ref="worker.runDAO" />
 		<property name="cacheBound" value="${default.runlimit}" />
+		<property name="additionalAuthorizedAddresses" value="${taverna.interaction.trusted_ip_addresses}" />
 	</bean>
 	<bean id="velocity" class="org.apache.velocity.app.VelocityEngine"
 		init-method="init" lazy-init="false">

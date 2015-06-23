@@ -82,6 +82,26 @@ public class WorkflowInternalAuthProvider extends
 			authorizedAddresses.add(s);
 	}
 
+	/**
+	 * Set the additional addresses that should be treated as authorised to
+	 * accept self-logins from. Necessary because complex network configurations
+	 * are extremely difficult to correctly auto-discover.
+	 * 
+	 * @param extraAddresses
+	 *            String containing a comma-separated list of IP addresses. For
+	 *            example, "<tt>127.0.0.1, 10.0.0.1, 192.168.0.1</tt>".
+	 *            Whitespace is stripped from each sub-element
+	 */
+	public void setAdditionalAuthorizedAddresses(String extraAddresses) {
+		if (extraAddresses == null)
+			return;
+		for (String extra: extraAddresses.split(",")) {
+			extra = extra.trim();
+			if (!extra.isEmpty())
+				authorizedAddresses.add(extra);
+		}
+	}
+
 	@PostConstruct
 	public void logConfig() {
 		log.info("authorized addresses for automatic access: "
